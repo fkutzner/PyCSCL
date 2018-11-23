@@ -38,7 +38,7 @@ class TestEncodeOrGate(TestCase):
 
         output = encode_or_gate(checker, inputs)
 
-        for i in range(0, 2**n - 2):
+        for i in range(0, 2**n - 1):
             assumptions = inputs[:]
             for j in range(0, n):
                 if (i & (1 << j)) != 0:
@@ -48,15 +48,11 @@ class TestEncodeOrGate(TestCase):
             assumptions[n] = -assumptions[n]
             assert (checker.solve(assumptions) is True)
 
-        if n > 0:
-            assumptions = inputs[:]
-            assumptions.append(output)
-            assert (checker.solve(assumptions) is True)
-            assumptions[n] = -assumptions[n]
-            assert (checker.solve(assumptions) is False)
-        else:
-            assert (checker.solve([output]) is False)
-            assert (checker.solve([-output]) is True)
+        assumptions = list(map(lambda x: -x, inputs))
+        assumptions.append(output)
+        assert (checker.solve(assumptions) is False)
+        assumptions[n] = -assumptions[n]
+        assert (checker.solve(assumptions) is True)
 
     def test_encode_or_gate_create_nullary_or_gate(self):
         self.encode_or_gate_n_ary_test_full(0)
