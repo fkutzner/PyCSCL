@@ -59,7 +59,7 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([var[1], var[3], var[5]])
         under_test.consume_clause([-var[1], -var[7], var[5]])
         under_test.consume_clause([-var[3], -var[7], -var[0]])
-        under_test.consume_clause([-var[9], -var[7], -var[1]])
+        under_test.consume_clause([-var[9], -var[6], -var[1]])
         assert (under_test.solve() is True)
 
     def test_solve_unsatisfiable_2sat_problem(self):
@@ -73,3 +73,27 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([-var[3], -var[8]])
         under_test.consume_clause([var[7], var[8]])
         assert (under_test.solve() is False)
+
+    def test_solve_3sat_problem_with_assumptions_sat(self):
+        under_test = TrivialSATSolver()
+        var = []
+        for i in range(0, 10):
+            var.append(under_test.create_variable())
+
+        under_test.consume_clause([var[1], var[3], var[5]])
+        under_test.consume_clause([-var[1], -var[7], var[5]])
+        under_test.consume_clause([-var[3], -var[7], -var[0]])
+        under_test.consume_clause([-var[9], -var[6], var[1]])
+        assert (under_test.solve([var[1], var[7], var[6]]) is True)
+
+    def test_solve_3sat_problem_with_assumptions_unsat(self):
+        under_test = TrivialSATSolver()
+        var = []
+        for i in range(0, 10):
+            var.append(under_test.create_variable())
+
+        under_test.consume_clause([var[1], var[3], var[5]])
+        under_test.consume_clause([var[1], -var[7], -var[5]])
+        under_test.consume_clause([-var[3], -var[7], -var[0]])
+        under_test.consume_clause([-var[9], -var[6], var[1]])
+        assert (under_test.solve([-var[1], -var[3], var[7]]) is False)

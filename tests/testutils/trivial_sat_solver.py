@@ -32,8 +32,11 @@ class TrivialSATSolver(cscl.clause_consumer.ClauseConsumer):
                 return True
         return False
 
-    def __solve(self, current_var, assignment):
+    def __solve(self, assumptions, current_var, assignment):
         self.__set_assignment(current_var, assignment)
+
+        if (current_var * (-1 if assignment else 1)) in assumptions:
+            return False
 
         for clause in self.__clauses:
             if not self.__is_satisfied(clause):
@@ -43,7 +46,7 @@ class TrivialSATSolver(cscl.clause_consumer.ClauseConsumer):
         if next_var > self.__get_num_variables():
             return True
 
-        result = self.__solve(next_var, False) or self.__solve(next_var, True)
+        result = self.__solve(assumptions, next_var, False) or self.__solve(assumptions, next_var, True)
         self.__set_assignment(current_var, None)
         return result
 
@@ -55,7 +58,7 @@ class TrivialSATSolver(cscl.clause_consumer.ClauseConsumer):
         self.__variable_assignments.append(None)
         return var_id
 
-    def solve(self):
+    def solve(self, assumptions = []):
         """
         Determines the satisfiability of the consumed problem, interpreted as a CNF formula in clausal form.
 
@@ -65,4 +68,6 @@ class TrivialSATSolver(cscl.clause_consumer.ClauseConsumer):
             return False
         if self.__get_num_variables() == 0:
             return True
-        return self.__solve(1, False) or self.__solve(1, True)
+
+        assumptionSet = set(assumptions)
+        return self.__solve(assumptionSet, 1, False) or self.__solve(assumptionSet, 1, True)
