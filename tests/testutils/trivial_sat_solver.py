@@ -33,17 +33,19 @@ class TrivialSATSolver(cscl.clause_consumer.ClauseConsumer):
         return False
 
     def __solve(self, assumptions, current_var, assignment):
-        self.__set_assignment(current_var, assignment)
-
         if (current_var * (-1 if assignment else 1)) in assumptions:
             return False
 
+        self.__set_assignment(current_var, assignment)
+
         for clause in self.__clauses:
             if not self.__is_satisfied(clause):
+                self.__set_assignment(current_var, None)
                 return False
 
         next_var = current_var+1
         if next_var > self.__get_num_variables():
+            self.__set_assignment(current_var, None)
             return True
 
         result = self.__solve(assumptions, next_var, False) or self.__solve(assumptions, next_var, True)

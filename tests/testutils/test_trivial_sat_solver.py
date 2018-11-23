@@ -68,10 +68,12 @@ class TestTrivialSATSolver(TestCase):
         for i in range(1, 10):
             var.append(under_test.create_variable())
 
-        under_test.consume_clause([var[1], var[3]])
-        under_test.consume_clause([-var[1], -var[7]])
-        under_test.consume_clause([-var[3], -var[8]])
-        under_test.consume_clause([var[7], var[8]])
+        under_test.consume_clause([-var[1], var[3]])
+        under_test.consume_clause([-var[3], var[8]])
+        under_test.consume_clause([-var[8], -var[1]])
+        under_test.consume_clause([var[4], var[1]])
+        under_test.consume_clause([-var[4], var[7]])
+        under_test.consume_clause([-var[7], -var[4]])
         assert (under_test.solve() is False)
 
     def test_solve_3sat_problem_with_assumptions_sat(self):
