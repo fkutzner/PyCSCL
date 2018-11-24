@@ -89,12 +89,11 @@ def subsets_of_size_k_test(collection, max_k):
     :param max_k: The maximum value of k, a non-negative integer.
     :return: None
     """
-    print("Testing subsets_of_size_k for " + str(collection))
     for k in range(0, max_k+1):
-        print("  ...and k=" + str(k))
         subsets = subsets_of_size_k(list(collection), k)
         expected = subsets_of_size_k_trivial(list(collection), k)
-        fail_msg = "Unexpected result: " + str(subsets) + "\n\nExpected: " + str(expected)
+        fail_msg = "Unexpected result: " + str(subsets) + "\n\nExpected: " + str(expected)\
+                   + "\nPicked from: " + str(collection) + "\nwith k=" + str(k)
         assert (len(subsets) == len(expected)), fail_msg
         assert (set(sorted_tuples(subsets)) == set(sorted_tuples(expected))), fail_msg
 
