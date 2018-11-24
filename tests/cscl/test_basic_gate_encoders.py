@@ -9,8 +9,8 @@ def encoder_returns_output_literal(encoder_fn):
     for i in range(0, 10):
         variables.append(checker.create_variable())
 
-    result = encoder_fn(checker, [variables[0]], variables[1])
-    return result == variables[1]
+    result = encoder_fn(checker, [variables[0], variables[1]], variables[2])
+    return result == variables[2]
 
 
 def encoder_returns_new_output_literal_by_default(encoder_fn):
@@ -19,7 +19,7 @@ def encoder_returns_new_output_literal_by_default(encoder_fn):
     for i in range(0, 10):
         variables.append(checker.create_variable())
 
-    result = encode_or_gate(checker, [variables[0]])
+    result = encode_or_gate(checker, [variables[0], variables[1]])
     return not result in variables and not -result in variables
 
 
@@ -128,3 +128,27 @@ class TestEncodeAndGate(TestCase):
 
     def test_encode_and_gate_create_quaternary_and_gate(self):
         self.encode_and_gate_n_ary_test_full(4)
+
+
+class TestEncodeBinaryXorGate(TestCase):
+    def test_encode_binary_xor_gate_returns_output_literal(self):
+        assert(encoder_returns_output_literal(encode_binary_xor_gate))
+
+    def test_encode_binary_xor_gate_returns_new_output_literal_by_default(self):
+        assert(encoder_returns_new_output_literal_by_default(encode_binary_xor_gate))
+
+    def test_encode_xor_gate_create_gate(self):
+        checker = TrivialSATSolver()
+        inputs = [checker.create_variable(), checker.create_variable()]
+        output = encode_binary_xor_gate(checker, inputs)
+
+        l1, l2 = inputs[0], inputs[1]
+
+        assert (checker.solve([l1, l2, output]) is False)
+        assert (checker.solve([l1, l2, -output]) is True)
+        assert (checker.solve([-l1, -l2, output]) is False)
+        assert (checker.solve([-l1, -l2, -output]) is True)
+        assert (checker.solve([-l1, l2, output]) is True)
+        assert (checker.solve([-l1, l2, -output]) is False)
+        assert (checker.solve([l1, -l2, output]) is True)
+        assert (checker.solve([l1, -l2, -output]) is False)
