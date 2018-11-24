@@ -71,6 +71,35 @@ def encode_binary_xor_gate(clause_consumer: ClauseConsumer, input_lits, output_l
     return output_lit
 
 
+def encode_binary_mux_gate(clause_consumer: ClauseConsumer, input_lits, output_lit = None):
+    """
+    Creates a binary MUX gate.
+
+    The created gate has three input literals lhs, rhs, sel (in this order) and encodes the
+    constraint
+
+      output_lit <-> ((-sel AND lhs) or (sel AND rhs))
+
+    i.e. an "if-then-else" gate.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param input_lits: The gate's input literals, a list of three literals.
+    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
+                       new variable will be used as the gate's output literal.
+    :return: The encoded gate's output literal.
+    """
+    if output_lit is None:
+        output_lit = clause_consumer.create_variable()
+    sel, lhs, rhs = input_lits[0], input_lits[1], input_lits[2]
+
+    clause_consumer.consume_clause([sel, lhs, -output_lit])
+    clause_consumer.consume_clause([sel, -lhs, output_lit])
+    clause_consumer.consume_clause([-sel, rhs, -output_lit])
+    clause_consumer.consume_clause([-sel, -rhs, output_lit])
+
+    return output_lit
+
+
 def encode_cnf_constraint_as_gate(clause_consumer: ClauseConsumer, formula, output_lit = None):
     """
     Creates a gate whose output evaluates to true iff the given CNF constraint is satisfied.

@@ -3,6 +3,7 @@ from cscl.basic_gate_encoders import *
 from tests.testutils.trivial_sat_solver import TrivialSATSolver
 from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
+
 def encoder_returns_output_literal(encoder_fn):
     checker = TrivialSATSolver()
     variables = []
@@ -166,6 +167,81 @@ def create_miter_problem(clause_consumer: ClauseConsumer, circuit1_output, circu
     clause_consumer.consume_clause([circuit1_output, circuit2_output])
     clause_consumer.consume_clause([-circuit1_output, -circuit2_output])
     return None
+
+
+def encode_binary_or_gate(clause_consumer: ClauseConsumer, input_lits, output_lit = None):
+    """
+    Creates a binary OR gate.
+
+    (Difference to production OR gate encoder: this is restricted to two inputs)
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param input_lits: The gate's input literals.
+    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
+                       new variable will be used as the gate's output literal.
+    :return: The encoded gate's output literal.
+    """
+    if output_lit is None:
+        output_lit = clause_consumer.create_variable()
+
+    clause_consumer.consume_clause([input_lits[0], input_lits[1], -output_lit])
+    clause_consumer.consume_clause([-input_lits[0], output_lit])
+    clause_consumer.consume_clause([-input_lits[1], output_lit])
+
+    return output_lit
+
+
+def encode_binary_and_gate(clause_consumer: ClauseConsumer, input_lits, output_lit=None):
+    """
+    Creates a binary AND gate.
+
+    (Difference to production AND gate encoder: this is restricted to two inputs)
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param input_lits: The gate's input literals.
+    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
+                       new variable will be used as the gate's output literal.
+    :return: The encoded gate's output literal.
+    """
+    if output_lit is None:
+        output_lit = clause_consumer.create_variable()
+
+    clause_consumer.consume_clause([-input_lits[0], -input_lits[1], output_lit])
+    clause_consumer.consume_clause([input_lits[0], -output_lit])
+    clause_consumer.consume_clause([input_lits[1], -output_lit])
+
+    return output_lit
+
+
+class TestEncodeBinaryMuxGate(TestCase):
+    def test_encode_binary_mux_gate_returns_output_literal(self):
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        result = encode_binary_mux_gate(checker, [variables[0], variables[1], variables[2]], variables[3])
+        assert result == variables[3]
+
+    def test_encode_binary_mux_gate_returns_new_output_literal_by_default(self):
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        result = encode_binary_mux_gate(checker, [variables[0], variables[1], variables[2]])
+        return result not in variables and -result not in variables
+
+    def test_encode_binary_mux_gate_is_equivalent_to_crafted_mux_gate(self):
+        # Prove equivalency to a crafted binary MUX gate:
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        sel, lhs, rhs = variables[0:3]
+
+        # Add production MUX:
+        logging_checker = LoggingClauseConsumerDecorator(checker)
+        production_mux_out = encode_binary_mux_gate(logging_checker, [sel, lhs, rhs])
+
+        # Add crafted MUX:
+        lhs_active_out = encode_binary_and_gate(checker, [-sel, lhs])
+        rhs_active_out = encode_binary_and_gate(checker, [sel, rhs])
+        crafted_mux_out = encode_binary_or_gate(checker, [lhs_active_out, rhs_active_out])
+
+        # Prove equivalency:
+        create_miter_problem(checker, production_mux_out, crafted_mux_out)
+        assert (checker.solve() is False), \
+            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(crafted_mux_out) + ")"
 
 
 class TestEncodeCNFConstraintAsGate(TestCase):
