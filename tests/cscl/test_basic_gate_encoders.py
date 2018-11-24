@@ -20,8 +20,8 @@ def encoder_returns_new_output_literal_by_default(encoder_fn):
     for i in range(0, 10):
         variables.append(checker.create_variable())
 
-    result = encode_or_gate(checker, [variables[0], variables[1]])
-    return not result in variables and not -result in variables
+    result = encoder_fn(checker, [variables[0], variables[1]])
+    return result not in variables and -result not in variables
 
 
 class TestEncodeOrGate(TestCase):
