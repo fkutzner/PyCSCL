@@ -1,5 +1,5 @@
 import unittest
-from cscl.cardinality_constraints_encoders import *
+from cscl.cardinality_constraint_encoders import *
 from tests.testutils.trivial_sat_solver import TrivialSATSolver
 from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
