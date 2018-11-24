@@ -1,5 +1,7 @@
 import unittest
 from cscl.cardinality_constraints_encoders import *
+from tests.testutils.trivial_sat_solver import TrivialSATSolver
+from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
 
 def has_k_bits_trivial(i, k):
@@ -112,11 +114,75 @@ class TestSubsetsOfSizeK(unittest.TestCase):
     def test_list_len_2(self):
         subsets_of_size_k_test([3, 2], 3)
 
-    def test_list_len_2(self):
-        subsets_of_size_k_test([3, 2], 4)
-
     def test_list_len_4(self):
         subsets_of_size_k_test([3, 2, 5, 6], 5)
 
     def test_list_len_6(self):
         subsets_of_size_k_test([3, 2, 5, 6, -1, -2], 7)
+
+
+def at_most_k_constraint_encoder_test(encoder, amnt_constrained_lits):
+    """
+    Tests the given at-most-k-constraint encoder for constraining amnt_constraint_lits literals.
+
+    The encoder is tested for amnt_constraint_lits and for each k in range(0, amnt_constrained_lits+2),
+    with all assignment combinations being tested. On failure, an assertion fails.
+
+    :param encoder: The at-most-k-constraint encoder to be tested.
+    :param amnt_constrained_lits: The amount of literals to be constrained for testing.
+    :return: None
+    """
+    for k in range(0, amnt_constrained_lits+2):
+        checker = TrivialSATSolver()
+        constrained_lits = []
+        for i in range(0, amnt_constrained_lits):
+            constrained_lits.append(checker.create_variable())
+
+        constraint = encoder(checker, k, constrained_lits)
+        logging_checker = LoggingClauseConsumerDecorator(checker)
+        for clause in constraint:
+            logging_checker.consume_clause(clause)
+
+        def check_constraint_for_l_lits_set_true(l, expected_satisfiable):
+            all_assumptions = subsets_of_size_k_trivial(constrained_lits, l)
+            for assumptions in all_assumptions:
+                assert (checker.solve(assumptions) is expected_satisfiable), \
+                    "Failed for k=" + str(k) + ", assumptions=" + str(assumptions) + "\nBad constraint:\n" + \
+                    logging_checker.to_string()
+
+        for l in range(0, k+1):
+            check_constraint_for_l_lits_set_true(l, True)
+
+        for l in range(k+1, amnt_constrained_lits+1):
+            check_constraint_for_l_lits_set_true(l, False)
+
+
+class TestEncodeAtMostKConstraintBinomial(unittest.TestCase):
+    def test_constraining_no_lits_yields_empty_problem(self):
+        variable_factory = TrivialSATSolver()
+        result = encode_at_most_k_constraint_binomial(variable_factory, 2, [])
+        assert (result == [])
+
+    def test_constraining_single_lit_with_k0_yields_unary_clause(self):
+        variable_factory = TrivialSATSolver()
+        result = encode_at_most_k_constraint_binomial(variable_factory, 0, [1])
+        assert (result == [[-1]]), "Bad encoding: " + str(result)
+
+    def test_constraining_single_lit_with_k1_yields_empty_problem(self):
+        variable_factory = TrivialSATSolver()
+        result = encode_at_most_k_constraint_binomial(variable_factory, 1, [1])
+        assert (result == []), "Bad encoding: " + str(result)
+
+    def test_constraining_single_lit_with_k2_yields_empty_problem(self):
+        variable_factory = TrivialSATSolver()
+        result = encode_at_most_k_constraint_binomial(variable_factory, 2, [1])
+        assert (result == []), "Bad encoding: " + str(result)
+
+    def test_constraining_2lits(self):
+        at_most_k_constraint_encoder_test(encode_at_most_k_constraint_binomial, 2)
+
+    def test_constraining_3lits(self):
+        at_most_k_constraint_encoder_test(encode_at_most_k_constraint_binomial, 3)
+
+    def test_constraining_4lits(self):
+        at_most_k_constraint_encoder_test(encode_at_most_k_constraint_binomial, 6)
