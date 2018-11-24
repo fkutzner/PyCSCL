@@ -7,7 +7,8 @@ class TrivialSATSolver(cscl.clause_consumer.ClauseConsumer):
 
     This solver is intended for testing constraint encoders and, due to its extremely simple
     implementation, should only be used for problems with a small amount of variables (<= 20)
-    and a small amount of clauses (<= 100).
+    and a small amount of clauses (<= 100). This solver is deliberately kept as simple as
+    possible to avoid bugs within the test infrastructure.
     """
 
     def __init__(self):

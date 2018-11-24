@@ -156,6 +156,12 @@ class TestEncodeBinaryXorGate(TestCase):
 
 
 def create_trivial_sat_solver_with_10_vars():
+    """
+    Creates a TrivialSATSolver instance x with 10 variables for x.
+
+    :return: (solver, variables). solver is the created solver, variables the list of
+             created variables.
+    """
     solver = TrivialSATSolver()
     variables = []
     for i in range(0, 10):
@@ -164,6 +170,26 @@ def create_trivial_sat_solver_with_10_vars():
 
 
 def create_miter_problem(clause_consumer: ClauseConsumer, circuit1_output, circuit2_output):
+    """
+    Adds clauses to clause_consumer asserting that circuit1_output and circuit2_output
+    have distinct values.
+
+    This can be used to check the equivalency of gates g and h:
+    - Add the encoding of g to a fresh clause_consumer.
+    - Add the encoding of h to a fresh clause_consumer. The inputs of h must match the inputs of g.
+    - Let o_g be the output literal of g's encoding and o_h be the output literal of h's encoding.
+      Call create_miter_problem(clause_consumer, o_g, o_h). This creates a circuit equivalency
+      checking problem.
+    - g and h are equivalent if and only if the CNF problem instance consumed by clause_consumer
+      is unsatisfiable.
+
+    This type of circuit equivalency checking problem is called miter problem.
+
+    :param clause_consumer: A ClauseConsumer.
+    :param circuit1_output: Any literal.
+    :param circuit2_output: Any literal.
+    :return: None
+    """
     clause_consumer.consume_clause([circuit1_output, circuit2_output])
     clause_consumer.consume_clause([-circuit1_output, -circuit2_output])
     return None
