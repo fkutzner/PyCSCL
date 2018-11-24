@@ -17,7 +17,7 @@ class TestDIMACSPrinter(TestCase):
         under_test = DIMACSPrinter()
         dimacs_printer_conversion_test(under_test, [], ["p cnf 0 0"])
 
-    def test_prints_empty_clause(selfs):
+    def test_prints_empty_clause(self):
         under_test = DIMACSPrinter()
         dimacs_printer_conversion_test(under_test, [[]], ["p cnf 0 1", " 0"])
 

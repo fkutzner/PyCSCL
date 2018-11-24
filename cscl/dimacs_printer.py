@@ -1,9 +1,9 @@
-from cscl.clause_consumer import ClauseConsumer
+from cscl.clause_consumer import ClauseConsumer, CNFVariableFactory
 
 
-class DIMACSPrinter(ClauseConsumer):
+class DIMACSPrinter(ClauseConsumer, CNFVariableFactory):
     """
-    A ClauseConsumer printing the consumed clauses in DIMACS format
+    A DIMACS CNF printer.
     """
 
     def __init__(self):

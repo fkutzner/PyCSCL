@@ -19,9 +19,6 @@ class LoggingClauseConsumerDecorator(ClauseConsumer):
         self.clauses.append(clause)
         self.decorated_clause_consumer.consume_clause(clause)
 
-    def create_variable(self):
-        return self.decorated_clause_consumer.create_variable()
-
     def to_string(self):
         """
         Returns a string representation of the clauses added via consume_clause(),

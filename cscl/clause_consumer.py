@@ -1,18 +1,8 @@
 import abc
 
 
-class ClauseConsumer(abc.ABC):
-    """An interface for clause consumers, e.g. SAT solvers or CNF formula builders"""
-
-    @abc.abstractmethod
-    def consume_clause(self, clause):
-        """
-        Consumes a clause.
-
-        :param clause: The clause to be consumed, a list of objects which have been created using create_variable().
-        :return: None
-        """
-        pass
+class CNFVariableFactory(abc.ABC):
+    """A role interface for CNF variable factories, e.g. SAT solvers or CNF formula builders"""
 
     @abc.abstractmethod
     def create_variable(self):
@@ -22,5 +12,19 @@ class ClauseConsumer(abc.ABC):
         The type of the returned object is deliberately unspecified.
 
         :return: A variable that has not previously been returned by this method.
+        """
+        pass
+
+
+class ClauseConsumer(abc.ABC):
+    """A role interface for clause consumers, e.g. SAT solvers or CNF formula builders"""
+
+    @abc.abstractmethod
+    def consume_clause(self, clause):
+        """
+        Consumes a clause.
+
+        :param clause: The clause to be consumed, a list of objects which have been created using create_variable().
+        :return: None
         """
         pass

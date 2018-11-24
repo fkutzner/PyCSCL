@@ -1,7 +1,7 @@
 import cscl.clause_consumer
 
 
-class TrivialSATSolver(cscl.clause_consumer.ClauseConsumer):
+class TrivialSATSolver(cscl.clause_consumer.ClauseConsumer, cscl.clause_consumer.CNFVariableFactory):
     """
     A trivial SAT solver.
 
