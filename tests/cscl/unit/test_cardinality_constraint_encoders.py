@@ -1,4 +1,5 @@
 import unittest
+import abc
 from cscl.cardinality_constraint_encoders import *
 from tests.testutils.trivial_sat_solver import TrivialSATSolver
 from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
@@ -156,32 +157,50 @@ def at_most_k_constraint_encoder_test(encoder, amnt_constrained_lits):
             check_constraint_for_l_lits_set_true(l, False)
 
 
-class TestEncodeAtMostKConstraintBinomial(unittest.TestCase):
+class AbstractEncodeAtMostKConstraintTestCase(abc.ABC):
+    @abc.abstractmethod
+    def get_encoder_fn(self):
+        pass
+
     def test_constraining_no_lits_yields_empty_problem(self):
         variable_factory = TrivialSATSolver()
-        result = encode_at_most_k_constraint_binomial(variable_factory, 2, [])
+        encoder = self.get_encoder_fn()
+        result = encoder(variable_factory, 2, [])
         assert (result == [])
 
     def test_constraining_single_lit_with_k0_yields_unary_clause(self):
         variable_factory = TrivialSATSolver()
-        result = encode_at_most_k_constraint_binomial(variable_factory, 0, [1])
+        encoder = self.get_encoder_fn()
+        result = encoder(variable_factory, 0, [1])
         assert (result == [[-1]]), "Bad encoding: " + str(result)
 
     def test_constraining_single_lit_with_k1_yields_empty_problem(self):
         variable_factory = TrivialSATSolver()
-        result = encode_at_most_k_constraint_binomial(variable_factory, 1, [1])
+        encoder = self.get_encoder_fn()
+        result = encoder(variable_factory, 1, [1])
         assert (result == []), "Bad encoding: " + str(result)
 
     def test_constraining_single_lit_with_k2_yields_empty_problem(self):
         variable_factory = TrivialSATSolver()
-        result = encode_at_most_k_constraint_binomial(variable_factory, 2, [1])
+        encoder = self.get_encoder_fn()
+        result = encoder(variable_factory, 2, [1])
         assert (result == []), "Bad encoding: " + str(result)
 
     def test_constraining_2lits(self):
-        at_most_k_constraint_encoder_test(encode_at_most_k_constraint_binomial, 2)
+        at_most_k_constraint_encoder_test(self.get_encoder_fn(), 2)
 
     def test_constraining_3lits(self):
-        at_most_k_constraint_encoder_test(encode_at_most_k_constraint_binomial, 3)
+        at_most_k_constraint_encoder_test(self.get_encoder_fn(), 3)
 
-    def test_constraining_4lits(self):
-        at_most_k_constraint_encoder_test(encode_at_most_k_constraint_binomial, 6)
+    def test_constraining_5lits(self):
+        at_most_k_constraint_encoder_test(self.get_encoder_fn(), 5)
+
+
+class TestEncodeAtMostKConstraintBinomial(unittest.TestCase, AbstractEncodeAtMostKConstraintTestCase):
+    def get_encoder_fn(self):
+        return encode_at_most_k_constraint_binomial
+
+
+class TestEncodeAtMostKConstraintLTSeq(unittest.TestCase, AbstractEncodeAtMostKConstraintTestCase):
+    def get_encoder_fn(self):
+        return encode_at_most_k_constraint_ltseq
