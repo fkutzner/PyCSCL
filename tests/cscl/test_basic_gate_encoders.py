@@ -1,7 +1,7 @@
 from unittest import TestCase
 from cscl.basic_gate_encoders import *
 from tests.testutils.trivial_sat_solver import TrivialSATSolver
-
+from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
 def encoder_returns_output_literal(encoder_fn):
     checker = TrivialSATSolver()
@@ -152,3 +152,77 @@ class TestEncodeBinaryXorGate(TestCase):
         assert (checker.solve([-l1, l2, -output]) is False)
         assert (checker.solve([l1, -l2, output]) is True)
         assert (checker.solve([l1, -l2, -output]) is False)
+
+
+def create_trivial_sat_solver_with_10_vars():
+    solver = TrivialSATSolver()
+    variables = []
+    for i in range(0, 10):
+        variables.append(solver.create_variable())
+    return solver, variables
+
+
+def create_miter_problem(clause_consumer: ClauseConsumer, circuit1_output, circuit2_output):
+    clause_consumer.consume_clause([circuit1_output, circuit2_output])
+    clause_consumer.consume_clause([-circuit1_output, -circuit2_output])
+    return None
+
+
+class TestEncodeCNFConstraintAsGate(TestCase):
+    def test_encode_cnf_constraint_as_gate_returns_output_literal(self):
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        result = encode_cnf_constraint_as_gate(checker, [[variables[0]], [variables[1]]], variables[2])
+        assert result == variables[2]
+
+    def test_encode_cnf_constraint_as_gate_returns_new_output_literal_by_default(self):
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        result = encode_cnf_constraint_as_gate(checker, [[variables[0]], [variables[1]]])
+        return result not in variables and -result not in variables
+
+    def test_encode_cnf_constraint_as_gate_encodes_empty_constraint_as_true(selfs):
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        logging_checker = LoggingClauseConsumerDecorator(checker)
+        output = encode_cnf_constraint_as_gate(logging_checker, [])
+        assert (checker.solve([-output]) is False),\
+            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+        assert (checker.solve([output]) is True),\
+            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+
+    def test_encode_cnf_constraint_as_gate_encodes_negation(selfs):
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        logging_checker = LoggingClauseConsumerDecorator(checker)
+        output = encode_cnf_constraint_as_gate(logging_checker, [[-variables[0]]])
+        assert (checker.solve([variables[0], output]) is False),\
+            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+        assert (checker.solve([-variables[0], output]) is True),\
+            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+
+    def test_encode_cnf_constraint_as_gate_encodes_or(selfs):
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        logging_checker = LoggingClauseConsumerDecorator(checker)
+        output = encode_cnf_constraint_as_gate(logging_checker, [[variables[0], variables[1]]])
+
+        # Add a raw or gate and create an equivalency checking problem:
+        checker.consume_clause([variables[0], variables[1], -variables[9]])
+        checker.consume_clause([-variables[0], variables[9]])
+        checker.consume_clause([-variables[1], variables[9]])
+        create_miter_problem(checker, output, variables[9])
+
+        assert (checker.solve() is False), \
+            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+
+    def test_encode_cnf_constraint_as_gate_encodes_xor(selfs):
+        checker, variables = create_trivial_sat_solver_with_10_vars()
+        logging_checker = LoggingClauseConsumerDecorator(checker)
+        output = encode_cnf_constraint_as_gate(logging_checker, [[variables[0], variables[1]],
+                                                                 [-variables[0], -variables[1]]])
+
+        # Add a raw xor gate and create an equivalency checking problem:
+        checker.consume_clause([variables[0], variables[1], -variables[9]])
+        checker.consume_clause([-variables[0], -variables[1], -variables[9]])
+        checker.consume_clause([variables[0], -variables[1], variables[9]])
+        checker.consume_clause([-variables[0], variables[1], variables[9]])
+        create_miter_problem(checker, output, variables[9])
+
+        assert (checker.solve() is False), \
+            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
