@@ -1,7 +1,7 @@
 import cscl.interfaces
 
 
-class TrivialSATSolver(cscl.interfaces.ClauseConsumer, cscl.interfaces.CNFVariableFactory):
+class TrivialSATSolver(cscl.interfaces.ClauseConsumer, cscl.interfaces.SatSolver):
     """
     A trivial SAT solver.
 
@@ -14,6 +14,7 @@ class TrivialSATSolver(cscl.interfaces.ClauseConsumer, cscl.interfaces.CNFVariab
     def __init__(self):
         self.__clauses = []
         self.__variable_assignments = []
+        self.__last_model = None
 
     def __get_num_variables(self):
         return len(self.__variable_assignments)
@@ -46,6 +47,7 @@ class TrivialSATSolver(cscl.interfaces.ClauseConsumer, cscl.interfaces.CNFVariab
 
         next_var = current_var+1
         if next_var > self.__get_num_variables():
+            self.__last_model = self.__variable_assignments[:]
             self.__set_assignment(current_var, None)
             return True
 
@@ -61,16 +63,21 @@ class TrivialSATSolver(cscl.interfaces.ClauseConsumer, cscl.interfaces.CNFVariab
         self.__variable_assignments.append(None)
         return var_id
 
-    def solve(self, assumptions = []):
-        """
-        Determines the satisfiability of the consumed problem, interpreted as a CNF formula in clausal form.
-
-        :return: True if the consumed problem is satisfiable, otherwise False.
-        """
+    def solve(self, assumptions=[]):
         if any((len(elem) == 0) for elem in self.__clauses):
             return False
         if self.__get_num_variables() == 0:
             return True
 
-        assumptionSet = set(assumptions)
-        return self.__solve(assumptionSet, 1, False) or self.__solve(assumptionSet, 1, True)
+        assumption_set = set(assumptions)
+        return self.__solve(assumption_set, 1, False) or self.__solve(assumption_set, 1, True)
+
+    def get_assignment(self, lit):
+        assert self.__last_model is not None
+        var = abs(lit) - 1
+        if var >= len(self.__last_model):
+            return None
+        var_assgn = self.__last_model[var]
+        if var_assgn is None:
+            return None
+        return var_assgn if lit > 0 else not var_assgn

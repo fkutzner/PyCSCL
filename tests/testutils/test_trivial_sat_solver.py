@@ -99,3 +99,26 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([-var[3], -var[7], -var[0]])
         under_test.consume_clause([-var[9], -var[6], var[1]])
         assert (under_test.solve([-var[1], -var[3], var[7]]) is False)
+
+    def test_get_forced_assignment(self):
+        under_test = TrivialSATSolver()
+        var = []
+        for i in range(0, 10):
+            var.append(under_test.create_variable())
+
+        under_test.consume_clause([var[1], var[3], var[5]])
+        under_test.consume_clause([-var[1], -var[7], var[5]])
+        under_test.consume_clause([-var[3], -var[7], -var[0]])
+        under_test.consume_clause([-var[9], -var[6], -var[1]])
+        assert (under_test.solve([var[1], var[7], var[6]]) is True)
+
+        assert (under_test.get_assignment(var[1]) is True)
+        assert (under_test.get_assignment(-var[1]) is False)
+        assert (under_test.get_assignment(var[7]) is True)
+        assert (under_test.get_assignment(-var[7]) is False)
+        assert (under_test.get_assignment(var[6]) is True)
+        assert (under_test.get_assignment(-var[6]) is False)
+        assert (under_test.get_assignment(var[5]) is True)
+        assert (under_test.get_assignment(-var[5]) is False)
+        assert (under_test.get_assignment(var[9]) is False)
+        assert (under_test.get_assignment(-var[9]) is True)
