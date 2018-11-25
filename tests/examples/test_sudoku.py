@@ -1,6 +1,6 @@
 import unittest
-import itertools
 from examples.sudoku import *
+from tests.testutils.trivial_sat_solver import TrivialSATSolver
 
 
 class TestSudokuBoard(unittest.TestCase):
@@ -141,14 +141,14 @@ xxx|xxx|2x3"""
         self.assertRaises(ValueError, under_test.set, 0, 0, 0)
         self.assertRaises(ValueError, under_test.set, 0, 0, 5)
 
-    def test_set_fails_for_invalid_coords(self):
+    def test_set_fails_for_invalid_indices(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         self.assertRaises(IndexError, under_test.set, 4, 0, 2)
         self.assertRaises(IndexError, under_test.set, 0, 4, 2)
         self.assertRaises(IndexError, under_test.set, -1, 0, 2)
         self.assertRaises(IndexError, under_test.set, 0, -1, 2)
 
-    def test_get_fails_for_invalid_coords(self):
+    def test_get_fails_for_invalid_indices(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         self.assertRaises(IndexError, under_test.get, 4, 0)
         self.assertRaises(IndexError, under_test.get, 0, 4)
@@ -171,3 +171,100 @@ xxx|xxx|2x3"""
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         result = under_test.to_string()
         assert result == self.board_2x2, "Invalid string representation:\n" + result + "\nExpected:\n" + self.board_2x2
+
+
+class TestSudokuEncoder(unittest.TestCase):
+    @staticmethod
+    def __is_completion_of(solution: SudokuBoard, problem_instance: SudokuBoard):
+        idx_range = range(0, solution.get_size())
+        for i, j in itertools.product(idx_range, idx_range):
+            if problem_instance.get(i, j) is not None and problem_instance.get(i, j) != solution.get(i, j):
+                print("Solution has illegal value at " + str((i, j)))
+                return False
+            if solution.get(i, j) is None:
+                print("Solution has no value at " + str((i, j)))
+                return False
+        return True
+
+    @staticmethod
+    def __all_rows_have_distinct_elements(board: SudokuBoard):
+        idx_range = range(0, board.get_size())
+        for row in idx_range:
+            col = [board.get(row, col) for col in idx_range]
+            if len(col) != len(set(col)):
+                print("Row " + str(row) + " does not have distinct elements")
+                return False
+        return True
+
+    @staticmethod
+    def __all_cols_have_distinct_elements(board: SudokuBoard):
+        idx_range = range(0, board.get_size())
+        for col in idx_range:
+            row = [board.get(row, col) for row in idx_range]
+            if len(row) != len(set(row)):
+                print("Column " + str(col) + " does not have distinct elements: " + str(row))
+                return False
+        return True
+
+    @staticmethod
+    def __all_boxes_have_distinct_elements(board: SudokuBoard):
+        box_size = int(math.sqrt(board.get_size()))
+
+        def box_indices(boxrow, boxcol):
+            return itertools.product(range(box_size * boxrow, (box_size+1) * boxrow),
+                                     range(box_size * boxcol, (box_size+1) * boxcol))
+
+        for box_row, box_col in itertools.product(range(0, box_size), range(0, box_size)):
+            box = [board.get(i, j) for i, j in box_indices(box_row, box_col)]
+            if len(box) != len((set(box))):
+                print("Box " + str((box_row, box_col)) + " does not have distinct elements: " + str(box))
+                return False
+        return True
+
+    @staticmethod
+    def __is_valid_solution(solution: SudokuBoard, problem_instance: SudokuBoard):
+        if solution.get_size() != problem_instance.get_size():
+            print("Board sizes differ, solution: " + solution.get_size()
+                  + " vs. problem instance " + problem_instance.get_size())
+            return False
+
+        valid = TestSudokuEncoder.__is_completion_of(solution, problem_instance)\
+            and TestSudokuEncoder.__all_cols_have_distinct_elements(solution)\
+            and TestSudokuEncoder.__all_rows_have_distinct_elements(solution)
+
+        return valid
+
+    @staticmethod
+    def __bad_solution_err_msg(solution: SudokuBoard, problem_instance: SudokuBoard):
+        return "Bad solution:\n" + solution.to_string() + "\nfor problem instance:\n" + problem_instance.to_string()
+
+    @staticmethod
+    def __solve_and_check(problem_instance_txt: str):
+        problem_instance = SudokuBoard.create_from_string(problem_instance_txt)
+        solver = TrivialSATSolver()
+        var_board = encode_sudoku(solver, solver, problem_instance)
+        solver.solve()
+        solution = solution_to_board(solver, problem_instance, var_board)
+        assert TestSudokuEncoder.__is_valid_solution(solution, problem_instance),\
+            TestSudokuEncoder.__bad_solution_err_msg(solution, problem_instance)
+
+    # Unfortunately, the simple testing SAT solver is not powerful enough for solving 3x3
+    # instances in a reasonable amount of time, and a full-fledged  IPASIR solver
+    # would be too heavyweight to be a testing dependency, so testing is limited to 2x2 boards
+    # for now (though the encoder supports arbitrarily large boards):
+
+    def test_2x2_constrained(self):
+        board_2x2_constrained = """x2|xx
+                                   xx|2x
+                                   --+--
+                                   4x|1x
+                                   xx|xx"""
+        TestSudokuEncoder.__solve_and_check(board_2x2_constrained)
+
+    def test_2x2_unconstrained(self):
+        board_2x2_empty ="""x2|xx
+                            xx|2x
+                            --+--
+                            4x|1x
+                            xx|xx"""
+        TestSudokuEncoder.__solve_and_check(board_2x2_empty)
