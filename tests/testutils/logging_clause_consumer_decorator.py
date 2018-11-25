@@ -1,4 +1,4 @@
-from cscl.clause_consumer import ClauseConsumer
+from cscl.interfaces import ClauseConsumer
 
 
 class LoggingClauseConsumerDecorator(ClauseConsumer):

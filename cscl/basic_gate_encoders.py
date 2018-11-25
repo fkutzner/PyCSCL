@@ -1,4 +1,4 @@
-from cscl.clause_consumer import ClauseConsumer, CNFVariableFactory
+from cscl.interfaces import ClauseConsumer, CNFVariableFactory
 
 
 def encode_or_gate(clause_consumer: ClauseConsumer, variable_factory: CNFVariableFactory, input_lits, output_lit=None):

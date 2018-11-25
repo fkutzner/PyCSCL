@@ -1,4 +1,4 @@
-from cscl.clause_consumer import ClauseConsumer, CNFVariableFactory
+from cscl.interfaces import ClauseConsumer, CNFVariableFactory
 
 
 class DIMACSPrinter(ClauseConsumer, CNFVariableFactory):

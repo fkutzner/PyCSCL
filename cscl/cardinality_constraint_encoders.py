@@ -1,4 +1,4 @@
-from cscl.clause_consumer import CNFVariableFactory
+from cscl.interfaces import CNFVariableFactory
 
 
 def subsets_of_size_k(collection, k):
