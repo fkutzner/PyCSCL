@@ -1,7 +1,7 @@
 import cscl.interfaces
 
 
-class TrivialSATSolver(cscl.interfaces.ClauseConsumer, cscl.interfaces.SatSolver):
+class TrivialSATSolver(cscl.interfaces.SatSolver):
     """
     A trivial SAT solver.
 

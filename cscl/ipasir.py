@@ -3,7 +3,7 @@ from ctypes import *
 from cscl.interfaces import *
 
 
-class IPASIRSatSolver(SatSolver, ClauseConsumer, abc.ABC):
+class IPASIRSatSolver(SatSolver, abc.ABC):
     """Interface for SAT solvers implementing the IPASIR interface"""
     pass
 

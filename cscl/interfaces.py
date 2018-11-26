@@ -30,8 +30,8 @@ class ClauseConsumer(abc.ABC):
         pass
 
 
-class SatSolver(CNFVariableFactory):
-    """A role interface for SAT solvers."""
+class SatSolver(CNFVariableFactory, ClauseConsumer):
+    """An interface for SAT solvers."""
 
     @abc.abstractmethod
     def solve(self, assumptions: list):
