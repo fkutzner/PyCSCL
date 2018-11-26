@@ -173,7 +173,8 @@ xxx|xxx|2x3"""
         assert result == self.board_2x2, "Invalid string representation:\n" + result + "\nExpected:\n" + self.board_2x2
 
 
-class TestSudokuEncoder(unittest.TestCase):
+# TODO: test SudokuSolver and SudokuEncoder independently
+class TestSudokuSolver(unittest.TestCase):
     @staticmethod
     def __is_completion_of(solution: SudokuBoard, problem_instance: SudokuBoard):
         idx_range = range(0, solution.get_size())
@@ -228,9 +229,9 @@ class TestSudokuEncoder(unittest.TestCase):
                   + " vs. problem instance " + problem_instance.get_size())
             return False
 
-        valid = TestSudokuEncoder.__is_completion_of(solution, problem_instance)\
-            and TestSudokuEncoder.__all_cols_have_distinct_elements(solution)\
-            and TestSudokuEncoder.__all_rows_have_distinct_elements(solution)
+        valid = TestSudokuSolver.__is_completion_of(solution, problem_instance)\
+            and TestSudokuSolver.__all_cols_have_distinct_elements(solution)\
+            and TestSudokuSolver.__all_rows_have_distinct_elements(solution)
 
         return valid
 
@@ -241,13 +242,12 @@ class TestSudokuEncoder(unittest.TestCase):
     @staticmethod
     def __solve_and_check(problem_instance_txt: str):
         problem_instance = SudokuBoard.create_from_string(problem_instance_txt)
-        solver = TrivialSATSolver()
-        var_board = encode_sudoku(solver, solver, problem_instance)
-        has_solution = solver.solve()
-        assert has_solution
-        solution = solution_to_board(solver, problem_instance, var_board)
-        assert TestSudokuEncoder.__is_valid_solution(solution, problem_instance),\
-            TestSudokuEncoder.__bad_solution_err_msg(solution, problem_instance)
+        sat_solver = TrivialSATSolver()
+        under_test = SudokuSolver(problem_instance.get_size(), sat_solver)
+        solution = under_test.solve(problem_instance)
+        assert solution is not None
+        assert TestSudokuSolver.__is_valid_solution(solution, problem_instance),\
+            TestSudokuSolver.__bad_solution_err_msg(solution, problem_instance)
 
     # Unfortunately, the simple testing SAT solver is not powerful enough for solving 3x3
     # instances in a reasonable amount of time, and a full-fledged  IPASIR solver
@@ -260,7 +260,7 @@ class TestSudokuEncoder(unittest.TestCase):
                                    --+--
                                    4x|1x
                                    xx|xx"""
-        TestSudokuEncoder.__solve_and_check(board_2x2_constrained)
+        TestSudokuSolver.__solve_and_check(board_2x2_constrained)
 
     def test_2x2_unconstrained(self):
         board_2x2_empty = """xx|xx
@@ -268,40 +268,40 @@ class TestSudokuEncoder(unittest.TestCase):
                              --+--
                              xx|xx
                              xx|xx"""
-        TestSudokuEncoder.__solve_and_check(board_2x2_empty)
+        TestSudokuSolver.__solve_and_check(board_2x2_empty)
 
     @staticmethod
     def __check_unsolvability(problem_instance_txt: str):
         problem_instance = SudokuBoard.create_from_string(problem_instance_txt)
-        solver = TrivialSATSolver()
-        encode_sudoku(solver, solver, problem_instance)
-        has_solution = solver.solve()
-        assert not has_solution, "Board has a solution, but should not:\n" + problem_instance_txt
+        sat_solver = TrivialSATSolver()
+        under_test = SudokuSolver(problem_instance.get_size(), sat_solver)
+        solution = under_test.solve(problem_instance)
+        assert solution is None, "Board has a solution, but should not:\n" + problem_instance_txt
 
     def test_2x2_has_box_constraint(self):
-        TestSudokuEncoder.__check_unsolvability("""1x|xx
-                                                   x1|xx
-                                                   --+--
-                                                   xx|xx
-                                                   xx|xx""")
+        TestSudokuSolver.__check_unsolvability("""1x|xx
+                                                  x1|xx
+                                                  --+--
+                                                  xx|xx
+                                                  xx|xx""")
 
     def test_2x2_has_row_constraint(self):
-        TestSudokuEncoder.__check_unsolvability("""1x|x1
-                                                   xx|xx
-                                                   --+--
-                                                   xx|xx
-                                                   xx|xx""")
+        TestSudokuSolver.__check_unsolvability("""1x|x1
+                                                  xx|xx
+                                                  --+--
+                                                  xx|xx
+                                                  xx|xx""")
 
     def test_2x2_has_col_constraint(self):
-        TestSudokuEncoder.__check_unsolvability("""1x|xx
-                                                   xx|xx
-                                                   --+--
-                                                   1x|xx
-                                                   xx|xx""")
+        TestSudokuSolver.__check_unsolvability("""1x|xx
+                                                  xx|xx
+                                                  --+--
+                                                  1x|xx
+                                                  xx|xx""")
 
     def test_2x2_overconstrained(self):
-        TestSudokuEncoder.__check_unsolvability("""1x|xx
-                                                   xx|4x
-                                                   --+--
-                                                   x3|x1
-                                                   xx|2x""")
+        TestSudokuSolver.__check_unsolvability("""1x|xx
+                                                  xx|4x
+                                                  --+--
+                                                  x3|x1
+                                                  xx|2x""")

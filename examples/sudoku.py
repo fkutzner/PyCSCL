@@ -166,76 +166,236 @@ class SudokuBoard:
         return result
 
 
-def solution_to_board(solver: SatSolver, problem_instance, variable_board) -> SudokuBoard:
-    # variable_board[i][j][sym]: SAT variable for cell(i,j) has symbol sym
-    result = problem_instance.clone()
-    n_symbols = len(variable_board)
-    for i, j, sym in itertools.product(range(0, n_symbols), range(0, n_symbols), range(0, n_symbols)):
-        sat_result = solver.get_assignment(variable_board[i][j][sym])
-        if sat_result is None:
-            result.set(i, j, 'x')
-        elif sat_result:
-            result.set(i, j, sym+1)
-    return result
+def positive_int_square(i: int):
+    """
+    Computes the square root of a square number i, in log(i) time.
+
+    :param i: A square number.
+    :return: The square root of i.
+    :raises ValueError if i is not a square number.
+    """
+
+    # TODO: implementation
+    return int(math.sqrt(i))
 
 
-def encode_general_sudoku_constraints(clause_consumer: ClauseConsumer,
-                                      variable_factory: CNFVariableFactory,
-                                      num_symbols: int,
-                                      encode_at_most_k_constraint_fn=encode_at_most_k_constraint_binomial):
-    # Create a 3-dimensional array at[0...num_symbols-1][0...num_symbols-1][0...num_symbols-1] filled with distinct
-    # variables:
-    at = []
-    for i in range(0, num_symbols):
-        row = [[variable_factory.create_variable() for k in range(0, num_symbols)] for l in range(0, num_symbols)]
-        at.append(row)
-    # Now: at[row][col][sym] is true :<-> cell (row,col) has symbol sym
+class SudokuProblemEncoder:
+    """
+    A SAT encoder for Sudoku problems given as SudokuBoard objects representing partial solutions.
+    """
 
-    def __encode_at_most_1_constraint(constrained_lits):
-        for clause in encode_at_most_k_constraint_fn(variable_factory, 1, constrained_lits):
-            clause_consumer.consume_clause(clause)
+    def __init__(self,
+                 clause_consumer: ClauseConsumer,
+                 variable_factory: CNFVariableFactory,
+                 num_symbols: int,
+                 encode_at_most_k_constraint_fn=encode_at_most_k_constraint_binomial):
+        """
+        Initializes a SudokuProblemEncoder object.
 
-    # Constraint: Each field may have at most one symbol
-    for row, col in itertools.product(range(0, num_symbols), range(0, num_symbols)):
-        __encode_at_most_1_constraint(at[row][col])  # at[row][col] is the list of digit-variables for cell (row,col)
+        The encoding is computed and added to the clause consumer during the first call to a public method of the
+        constructed object.
 
-    # Constraint: In each row, each symbol must appear exactly once
-    for row, sym in itertools.product(range(0, num_symbols), range(0, num_symbols)):
-        symbols_in_row = [at[row][col][sym] for col in range(0, num_symbols)]
-        __encode_at_most_1_constraint(symbols_in_row)
-        clause_consumer.consume_clause(symbols_in_row)
+        :param clause_consumer: The ClauseConsumer which will receive the encoding's clauses.
+        :param variable_factory: The VariableFactory used to create SAT variables.
+        :param num_symbols: The number of distinct symbols that may occur on the Sudoku board. For a K x K board, this
+                            is K. num_symbols must be a square number.
+        :param encode_at_most_k_constraint_fn: An encode_at_most_k_constraint_* function from the
+                                               cscl.cardinality_constraint_encoders package. By default, the binomial
+                                               encoder is used.
+        :raises ValueError if num_symbols is not a non-zero square integer.
+        """
+        self.__clause_consumer = clause_consumer
+        self.__variable_factory = variable_factory
+        self.__num_symbols = num_symbols
 
-    # Constraint: In each column, each symbol must appear exactly once
-    for col, sym in itertools.product(range(0, num_symbols), range(0, num_symbols)):
-        symbols_in_col = [at[row][col][sym] for row in range(0, num_symbols)]
-        __encode_at_most_1_constraint(symbols_in_col)
-        clause_consumer.consume_clause(symbols_in_col)
+        # Set up an at-most-1 constraint encoder:
+        def __encode_at_most_1_constraint(constrained_lits):
+            for clause in encode_at_most_k_constraint_fn(variable_factory, 1, constrained_lits):
+                clause_consumer.consume_clause(clause)
+        self.__encode_at_most_1_constraint = __encode_at_most_1_constraint
 
-    # Constraint: In each box, each symbol must appear exactly once
-    num_boxes = int(math.sqrt(num_symbols))
+        # __at is either None or a 3-dimensional array at[0...num_symbols-1][0...num_symbols-1][0...num_symbols-1]
+        # filled with distinct variables.
+        # Encoding: __at[row][col][sym] is true :<=> cell (row,col) has symbol sym+1
+        # This variable is initialized by self.__lazy_encode_general_sudoku_constraints().
+        self.__at = None
 
-    def __box_indices(box_row, box_col):
-        return itertools.product(range(box_row * num_boxes, (box_row+1) * num_boxes),
-                                 range(box_col * num_boxes, (box_col+1) * num_boxes))
+        # Flag signifying whether self.__lazy_encode_general_sudoku_constraints() has been called.
+        self.__has_created_general_sudoku_constraints = False
 
-    for box_i, box_j, sym in itertools.product(range(0, num_boxes), range(0, num_boxes), range(0, num_symbols)):
-        symbols_in_box = [at[i][j][sym] for i, j in __box_indices(box_i, box_j)]
-        __encode_at_most_1_constraint(symbols_in_box)
-        clause_consumer.consume_clause(symbols_in_box)
+        # Flag signifying whether a full board encoding has been passed to the clause consumer
+        self.__has_created_full_encoding = False
 
-    return at
+        try:
+            self.__box_size = positive_int_square(num_symbols)
+        except ValueError:
+            raise ValueError("num_symbols must be a non-zero square number.")
+
+    def __lazy_encode_general_sudoku_constraints(self):
+        """
+        On its first call, encodes the general Sudoku board constraints for a sudoku board with size K x K with
+        K = self.__num_symbols. On subsequent calls, this method is a no-op.
+
+        Post-conditions:
+        __at is a 3-dimensional array at[0...__num_symbols-1][0...__num_symbols-1][0...__num_symbols-1]
+        filled with distinct SAT variables such that the following holds wrt. the SAT encoding:
+        __at[row][col][sym] is true <=> cell (row,col) has symbol sym+1
+
+        :return: None
+        """
+        if self.__has_created_general_sudoku_constraints:
+            return
+
+        num_symbols = self.__num_symbols
+        self.__at = []
+        for i in range(0, num_symbols):
+            row = [[self.__variable_factory.create_variable() for k in range(0, num_symbols)]
+                   for l in range(0, num_symbols)]
+            self.__at.append(row)
+
+        # Constraint: Each field may have at most one symbol
+        for row, col in itertools.product(range(0, num_symbols), range(0, num_symbols)):
+            self.__encode_at_most_1_constraint(self.__at[row][col])
+            # self.__at[row][col] is the list of symbol-variables for cell (row,col)
+
+        # Constraint: In each row, each symbol must appear exactly once
+        for row, sym in itertools.product(range(0, num_symbols), range(0, num_symbols)):
+            symbols_in_row = [self.__at[row][col][sym] for col in range(0, num_symbols)]
+            self.__encode_at_most_1_constraint(symbols_in_row)
+            self.__clause_consumer.consume_clause(symbols_in_row)
+
+        # Constraint: In each column, each symbol must appear exactly once
+        for col, sym in itertools.product(range(0, num_symbols), range(0, num_symbols)):
+            symbols_in_col = [self.__at[row][col][sym] for row in range(0, num_symbols)]
+            self.__encode_at_most_1_constraint(symbols_in_col)
+            self.__clause_consumer.consume_clause(symbols_in_col)
+
+        # Constraint: In each box, each symbol must appear exactly once
+        num_boxes = self.__box_size
+
+        def __box_indices(box_row, box_col):
+            return itertools.product(range(box_row * self.__box_size, (box_row+1) * self.__box_size),
+                                     range(box_col * self.__box_size, (box_col+1) * self.__box_size))
+
+        for box_i, box_j, sym in itertools.product(range(0, num_boxes), range(0, num_boxes), range(0, num_symbols)):
+            symbols_in_box = [self.__at[i][j][sym] for i, j in __box_indices(box_i, box_j)]
+            self.__encode_at_most_1_constraint(symbols_in_box)
+            self.__clause_consumer.consume_clause(symbols_in_box)
+
+        self.__has_created_general_sudoku_constraints = True
+
+    def get_symbol_literal(self, row, col, symbol):
+        """
+        Gets the SAT literal for the fact "The cell with indices (`row`, `col`) contains the symbol `symbol`"
+
+        :param row: The cell's row index, an int in range(0, num_symbols)
+        :param col: The cell's column index, an int in range(0, num_symbols)
+        :param symbol: The symbol, an int in range(1, num_symbols+1)
+        :raises ValueError if row, col or symbol are out of bounds.
+        :return: The SAT literal as described above.
+        """
+        if row not in range(0, self.__num_symbols)\
+                or col not in range(0, self.__num_symbols)\
+                or symbol not in range(1, self.__num_symbols+1):
+            raise ValueError("Index out of bounds")
+        self.__lazy_encode_general_sudoku_constraints()
+        return self.__at[row][col][symbol-1]
+
+    def get_required_fixed_assignments(self, board: SudokuBoard):
+        """
+        Gets a list of SAT literals representing the facts (i.e. the non-None fields) contained in the given
+        Sudoku problem instance board. If the Sudoku problem encoding has not been passed to the clause consumer
+        yet, only the problem-instance-independent part of the Sudoku problem encoding is passed to the
+        clause consumer. To solve the Sudoku instance, the literals returned by this function must be
+        added to the problem as unary clauses, or passed to the SAT solver as assumptions.
+
+        :param board: A Sudoku board of size num_symbols x num_symbols
+        :raises ValueError if the board has an illegal size.
+        :return: A list of SAT literals as described above.
+        """
+        if board.get_size() != self.__num_symbols:
+            raise ValueError("Illegal board size")
+
+        self.__lazy_encode_general_sudoku_constraints()
+        board_indices = itertools.product(range(0, board.get_size()), range(0, board.get_size()))
+        return [self.__at[i][j][board.get(i, j)-1] for i, j in board_indices if board.get(i, j) is not None]
+
+    def encode_with_required_fixed_assignments(self, board: SudokuBoard):
+        """
+        Passes a full encoding of the Sudoku problem represented by `board` to the clause consumer.
+
+        If get_required_fixed_assignments() has already been called, only the board-specific additional clauses
+        are passed to the clause consumer.
+
+        This method may only be called once.
+
+        :param board: A Sudoku board of size num_symbols x num_symbols
+        :raises RuntimeError when this method has already been called.
+        :raises ValueError if the board has an illegal size.
+        :return: None
+        """
+        if self.__has_created_full_encoding:
+            raise RuntimeError("This method may only be called once")
+        if board.get_size() != self.__num_symbols:
+            raise ValueError("Illegal board size")
+
+        for lit in self.get_required_fixed_assignments(board):
+            self.__clause_consumer.consume_clause([lit])
+
+        self.__has_created_full_encoding = True
 
 
-def encode_sudoku_instance_specifics(clause_consumer: ClauseConsumer, board: SudokuBoard, sudoku_sat_variables):
-    for i, j in itertools.product(range(0, board.get_size()), range(0, board.get_size())):
-        sym = board.get(i, j)
-        if sym is not None:
-            clause_consumer.consume_clause([sudoku_sat_variables[i][j][sym-1]])
+class SudokuSolver:
 
+    def __init__(self,
+                 num_symbols: int,
+                 sat_solver: SatSolver,
+                 sudoku_problem_encoder=None):
+        """
+        Initializes the SudokuSolver object.
 
-def encode_sudoku(clause_consumer: ClauseConsumer,
-                  variable_factory: CNFVariableFactory,
-                  board: SudokuBoard):
-    at = encode_general_sudoku_constraints(clause_consumer, variable_factory, board.get_size())
-    encode_sudoku_instance_specifics(clause_consumer, board, at)
-    return at
+        :param num_symbols: The number of distinct symbols that may occur on the Sudoku board. For a K x K board, this
+                            is K. num_symbols must be a square number.
+        :param sat_solver: A SAT solver that has no clauses.
+        :param sudoku_problem_encoder: The Sudoku SAT problem encoder. If None, a SudokuProblemEncoder is used to create
+                                       the SAT encoding.
+        :raises ValueError if num_symbols is not a non-zero square integer.
+        """
+        self.__sat_solver = sat_solver
+        self.__num_symbols = num_symbols
+
+        if sudoku_problem_encoder is None:
+            self.__encoder = SudokuProblemEncoder(self.__sat_solver, sat_solver, num_symbols)
+        else:
+            self.__encoder = sudoku_problem_encoder
+
+    def solve(self, board: SudokuBoard):
+        """
+        Solves a Sudoku problem instance.
+
+        If the given partial Sudoku solution can be completed, its completion is returned in the form of a SudokuBoard.
+        Otherwise, None is returned.
+
+        :param board: A Sudoku board of size num_symbols x num_symbols
+        :raises ValueError if the board has an illegal size.
+        :return: A SudokuBoard or None, as described above.
+        """
+        if board.get_size() != self.__num_symbols:
+            raise ValueError("Illegal board size")
+
+        fixed_assignments = self.__encoder.get_required_fixed_assignments(board)
+        is_sat = self.__sat_solver.solve(fixed_assignments)
+        if not is_sat:
+            return None
+        return self.__solution_to_board(board)
+
+    def __solution_to_board(self, problem_instance: SudokuBoard) -> SudokuBoard:
+        result = problem_instance.clone()
+        n_symbols = problem_instance.get_size()
+        for i, j, sym in itertools.product(range(0, n_symbols), range(0, n_symbols), range(1, n_symbols+1)):
+            sat_result = self.__sat_solver.get_assignment(self.__encoder.get_symbol_literal(i, j, sym))
+            if sat_result is None:
+                result.set(i, j, 'x')
+            elif sat_result:
+                result.set(i, j, sym)
+        return result
