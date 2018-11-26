@@ -124,7 +124,6 @@ class SudokuBoard:
             cloned_board.append(row[:])
         return SudokuBoard(cloned_board)
 
-
     @staticmethod
     def __create_separator_string(box_size: int) -> str:
         result = ""
