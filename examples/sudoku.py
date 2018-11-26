@@ -179,80 +179,63 @@ def solution_to_board(solver: SatSolver, problem_instance, variable_board) -> Su
     return result
 
 
-def encode_sudoku(clause_consumer: ClauseConsumer,
-                  variable_factory: CNFVariableFactory,
-                  board: SudokuBoard):
-    n_symbols = board.get_size()
+def encode_general_sudoku_constraints(clause_consumer: ClauseConsumer,
+                                      variable_factory: CNFVariableFactory,
+                                      num_symbols: int,
+                                      encode_at_most_k_constraint_fn=encode_at_most_k_constraint_binomial):
+    # Create a 3-dimensional array at[0...num_symbols-1][0...num_symbols-1][0...num_symbols-1] filled with distinct
+    # variables:
     at = []
-    for i in range(0, n_symbols):
-        row = []
-        for j in range(0, n_symbols):
-            col = []
-            for k in range(0, n_symbols):
-                col.append(variable_factory.create_variable())
-            row.append(col)
+    for i in range(0, num_symbols):
+        row = [[variable_factory.create_variable() for k in range(0, num_symbols)] for l in range(0, num_symbols)]
         at.append(row)
-    # Now: at[row][col][sym] :<-> cell (row,col) has symbol sym
+    # Now: at[row][col][sym] is true :<-> cell (row,col) has symbol sym
 
     def __encode_at_most_1_constraint(constrained_lits):
-        for clause in encode_at_most_k_constraint_binomial(variable_factory, 1, constrained_lits):
+        for clause in encode_at_most_k_constraint_fn(variable_factory, 1, constrained_lits):
             clause_consumer.consume_clause(clause)
 
     # Constraint: Each field may have at most one symbol
-    for i in range(0, n_symbols):
-        for j in range(0, n_symbols):
-            __encode_at_most_1_constraint(at[i][j])
+    for row, col in itertools.product(range(0, num_symbols), range(0, num_symbols)):
+        __encode_at_most_1_constraint(at[row][col])  # at[row][col] is the list of digit-variables for cell (row,col)
 
     # Constraint: In each row, each symbol must appear exactly once
-    for row in range(0, n_symbols):
-        for sym in range(0, n_symbols):
-            symbols_in_row = []
-            for col in range(0, n_symbols):
-                symbols_in_row.append(at[row][col][sym])
-
-            # At-most-1:
-            __encode_at_most_1_constraint(symbols_in_row)
-            # At-least-1:
-            clause_consumer.consume_clause(symbols_in_row)
+    for row, sym in itertools.product(range(0, num_symbols), range(0, num_symbols)):
+        symbols_in_row = [at[row][col][sym] for col in range(0, num_symbols)]
+        __encode_at_most_1_constraint(symbols_in_row)
+        clause_consumer.consume_clause(symbols_in_row)
 
     # Constraint: In each column, each symbol must appear exactly once
-    for col in range(0, n_symbols):
-        for sym in range(0, n_symbols):
-            symbols_in_col = []
-            for row in range(0, n_symbols):
-                symbols_in_col.append(at[row][col][sym])
+    for col, sym in itertools.product(range(0, num_symbols), range(0, num_symbols)):
+        symbols_in_col = [at[row][col][sym] for row in range(0, num_symbols)]
+        __encode_at_most_1_constraint(symbols_in_col)
+        clause_consumer.consume_clause(symbols_in_col)
 
-            # At-most-1:
-            __encode_at_most_1_constraint(symbols_in_col)
-            # At-least-1:
-            clause_consumer.consume_clause(symbols_in_col)
+    # Constraint: In each box, each symbol must appear exactly once
+    num_boxes = int(math.sqrt(num_symbols))
 
-    # In each box, each symbol must appear exactly once
-    n_boxes = int(math.sqrt(n_symbols))
+    def __box_indices(box_row, box_col):
+        return itertools.product(range(box_row * num_boxes, (box_row+1) * num_boxes),
+                                 range(box_col * num_boxes, (box_col+1) * num_boxes))
 
-    def __box_min(box):
-        return box * n_boxes
+    for box_i, box_j, sym in itertools.product(range(0, num_boxes), range(0, num_boxes), range(0, num_symbols)):
+        symbols_in_box = [at[i][j][sym] for i, j in __box_indices(box_i, box_j)]
+        __encode_at_most_1_constraint(symbols_in_box)
+        clause_consumer.consume_clause(symbols_in_box)
 
-    def __box_max(box):
-        return (box+1) * n_boxes
+    return at
 
-    for box_i, box_j, sym in itertools.product(range(0, n_boxes), range(0, n_boxes), range(0, n_symbols)):
-        places = []
-        box_i_coord_range = range(__box_min(box_i), __box_max(box_i))
-        box_j_coord_range = range(__box_min(box_j), __box_max(box_j))
 
-        for i, j in itertools.product(box_i_coord_range, box_j_coord_range):
-            places.append(at[i][j][sym])
-
-        # At-most-1:
-        __encode_at_most_1_constraint(places)
-        # At-least-1:
-        clause_consumer.consume_clause(places)
-
-    # Fixed settings:
-    for i, j in itertools.product(range(0, n_symbols), range(0, n_symbols)):
+def encode_sudoku_instance_specifics(clause_consumer: ClauseConsumer, board: SudokuBoard, sudoku_sat_variables):
+    for i, j in itertools.product(range(0, board.get_size()), range(0, board.get_size())):
         sym = board.get(i, j)
         if sym is not None:
-            clause_consumer.consume_clause([at[i][j][sym-1]])
+            clause_consumer.consume_clause([sudoku_sat_variables[i][j][sym-1]])
 
+
+def encode_sudoku(clause_consumer: ClauseConsumer,
+                  variable_factory: CNFVariableFactory,
+                  board: SudokuBoard):
+    at = encode_general_sudoku_constraints(clause_consumer, variable_factory, board.get_size())
+    encode_sudoku_instance_specifics(clause_consumer, board, at)
     return at
