@@ -8,7 +8,7 @@ def encoder_returns_output_literal(encoder_fn):
     checker = TrivialSATSolver()
     variables = []
     for i in range(0, 10):
-        variables.append(checker.create_variable())
+        variables.append(checker.create_literal())
 
     result = encoder_fn(checker, checker, [variables[0], variables[1]], variables[2])
     return result == variables[2]
@@ -18,7 +18,7 @@ def encoder_returns_new_output_literal_by_default(encoder_fn):
     checker = TrivialSATSolver()
     variables = []
     for i in range(0, 10):
-        variables.append(checker.create_variable())
+        variables.append(checker.create_literal())
 
     result = encoder_fn(checker, checker, [variables[0], variables[1]])
     return result not in variables and -result not in variables
@@ -41,7 +41,7 @@ class TestEncodeOrGate(TestCase):
         checker = TrivialSATSolver()
         inputs = []
         for i in range(0, n):
-            inputs.append(checker.create_variable())
+            inputs.append(checker.create_literal())
 
         output = encode_or_gate(checker, checker, inputs)
 
@@ -95,7 +95,7 @@ class TestEncodeAndGate(TestCase):
         checker = TrivialSATSolver()
         inputs = []
         for i in range(0, n):
-            inputs.append(checker.create_variable())
+            inputs.append(checker.create_literal())
 
         output = encode_and_gate(checker, checker, inputs)
 
@@ -140,7 +140,7 @@ class TestEncodeBinaryXorGate(TestCase):
 
     def test_encode_xor_gate_create_gate(self):
         checker = TrivialSATSolver()
-        inputs = [checker.create_variable(), checker.create_variable()]
+        inputs = [checker.create_literal(), checker.create_literal()]
         output = encode_binary_xor_gate(checker, checker, inputs)
 
         l1, l2 = inputs[0], inputs[1]
@@ -165,7 +165,7 @@ def create_trivial_sat_solver_with_10_vars():
     solver = TrivialSATSolver()
     variables = []
     for i in range(0, 10):
-        variables.append(solver.create_variable())
+        variables.append(solver.create_literal())
     return solver, variables
 
 
@@ -195,7 +195,7 @@ def create_miter_problem(clause_consumer: ClauseConsumer, circuit1_output, circu
     return None
 
 
-def encode_binary_or_gate(clause_consumer: ClauseConsumer, variable_factory: CNFVariableFactory,
+def encode_binary_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
                           input_lits, output_lit=None):
     """
     Creates a binary OR gate.
@@ -203,14 +203,14 @@ def encode_binary_or_gate(clause_consumer: ClauseConsumer, variable_factory: CNF
     (Difference to production OR gate encoder: this is restricted to two inputs)
 
     :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
-    :param variable_factory: TODO
+    :param lit_factory: TODO
     :param input_lits: The gate's input literals.
     :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
                        new variable will be used as the gate's output literal.
     :return: The encoded gate's output literal.
     """
     if output_lit is None:
-        output_lit = variable_factory.create_variable()
+        output_lit = lit_factory.create_literal()
 
     clause_consumer.consume_clause([input_lits[0], input_lits[1], -output_lit])
     clause_consumer.consume_clause([-input_lits[0], output_lit])
@@ -219,7 +219,7 @@ def encode_binary_or_gate(clause_consumer: ClauseConsumer, variable_factory: CNF
     return output_lit
 
 
-def encode_binary_and_gate(clause_consumer: ClauseConsumer, variable_factory: CNFVariableFactory,
+def encode_binary_and_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
                            input_lits, output_lit=None):
     """
     Creates a binary AND gate.
@@ -233,7 +233,7 @@ def encode_binary_and_gate(clause_consumer: ClauseConsumer, variable_factory: CN
     :return: The encoded gate's output literal.
     """
     if output_lit is None:
-        output_lit = variable_factory.create_variable()
+        output_lit = lit_factory.create_literal()
 
     clause_consumer.consume_clause([-input_lits[0], -input_lits[1], output_lit])
     clause_consumer.consume_clause([input_lits[0], -output_lit])

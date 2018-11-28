@@ -136,7 +136,7 @@ def at_most_k_constraint_encoder_test(encoder, amnt_constrained_lits):
         checker = TrivialSATSolver()
         constrained_lits = []
         for i in range(0, amnt_constrained_lits):
-            constrained_lits.append(checker.create_variable())
+            constrained_lits.append(checker.create_literal())
 
         constraint = encoder(checker, k, constrained_lits)
         logging_checker = LoggingClauseConsumerDecorator(checker)
@@ -163,27 +163,27 @@ class AbstractEncodeAtMostKConstraintTestCase(abc.ABC):
         pass
 
     def test_constraining_no_lits_yields_empty_problem(self):
-        variable_factory = TrivialSATSolver()
+        lit_factory = TrivialSATSolver()
         encoder = self.get_encoder_fn()
-        result = encoder(variable_factory, 2, [])
+        result = encoder(lit_factory, 2, [])
         assert (result == [])
 
     def test_constraining_single_lit_with_k0_yields_unary_clause(self):
-        variable_factory = TrivialSATSolver()
+        lit_factory = TrivialSATSolver()
         encoder = self.get_encoder_fn()
-        result = encoder(variable_factory, 0, [1])
+        result = encoder(lit_factory, 0, [1])
         assert (result == [[-1]]), "Bad encoding: " + str(result)
 
     def test_constraining_single_lit_with_k1_yields_empty_problem(self):
-        variable_factory = TrivialSATSolver()
+        lit_factory = TrivialSATSolver()
         encoder = self.get_encoder_fn()
-        result = encoder(variable_factory, 1, [1])
+        result = encoder(lit_factory, 1, [1])
         assert (result == []), "Bad encoding: " + str(result)
 
     def test_constraining_single_lit_with_k2_yields_empty_problem(self):
-        variable_factory = TrivialSATSolver()
+        lit_factory = TrivialSATSolver()
         encoder = self.get_encoder_fn()
-        result = encoder(variable_factory, 2, [1])
+        result = encoder(lit_factory, 2, [1])
         assert (result == []), "Bad encoding: " + str(result)
 
     def test_constraining_2lits(self):

@@ -23,15 +23,15 @@ class TestDIMACSPrinter(TestCase):
 
     def test_prints_one_nonempty_clause(self):
         under_test = DIMACSPrinter()
-        var1 = under_test.create_variable()
-        var2 = under_test.create_variable()
+        var1 = under_test.create_literal()
+        var2 = under_test.create_literal()
         dimacs_printer_conversion_test(under_test, [[var1, -var2]], ["p cnf 2 1", "1 -2 0"])
 
     def test_prints_multiple_clauses(self):
         under_test = DIMACSPrinter()
-        var1 = under_test.create_variable()
-        var2 = under_test.create_variable()
-        var3 = under_test.create_variable()
+        var1 = under_test.create_literal()
+        var2 = under_test.create_literal()
+        var3 = under_test.create_literal()
 
         clauses = [[var1, var2, -var3], [-var2], [var1, var3]]
         expected_output = ["p cnf 3 3", "1 2 -3 0", "-2 0", "1 3 0"]

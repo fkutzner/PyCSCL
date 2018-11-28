@@ -52,7 +52,7 @@ class IPASIRSatSolverResource:
                     self.dso.ipasir_add(self.solver, lit)
                 self.dso.ipasir_add(self.solver, 0)
 
-            def create_variable(self):
+            def create_literal(self):
                 self.num_vars += 1
                 return self.num_vars
 

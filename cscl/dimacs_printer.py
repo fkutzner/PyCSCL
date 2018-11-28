@@ -1,7 +1,7 @@
-from cscl.interfaces import ClauseConsumer, CNFVariableFactory
+from cscl.interfaces import ClauseConsumer, CNFLiteralFactory
 
 
-class DIMACSPrinter(ClauseConsumer, CNFVariableFactory):
+class DIMACSPrinter(ClauseConsumer, CNFLiteralFactory):
     """
     A DIMACS CNF printer.
     """
@@ -13,7 +13,7 @@ class DIMACSPrinter(ClauseConsumer, CNFVariableFactory):
     def consume_clause(self, clause):
         self.clauses.append(clause)
 
-    def create_variable(self):
+    def create_literal(self):
         self.num_vars += 1
         return self.num_vars
 

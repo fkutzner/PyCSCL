@@ -186,7 +186,7 @@ class SudokuProblemEncoder:
 
     def __init__(self,
                  clause_consumer: ClauseConsumer,
-                 variable_factory: CNFVariableFactory,
+                 lit_factory: CNFLiteralFactory,
                  num_symbols: int,
                  encode_at_most_k_constraint_fn=encode_at_most_k_constraint_binomial):
         """
@@ -196,7 +196,7 @@ class SudokuProblemEncoder:
         constructed object.
 
         :param clause_consumer: The ClauseConsumer which will receive the encoding's clauses.
-        :param variable_factory: The VariableFactory used to create SAT variables.
+        :param lit_factory: The CNFLiteralFactory used to create SAT literals.
         :param num_symbols: The number of distinct symbols that may occur on the Sudoku board. For a K x K board, this
                             is K. num_symbols must be a square number.
         :param encode_at_most_k_constraint_fn: An encode_at_most_k_constraint_* function from the
@@ -205,17 +205,17 @@ class SudokuProblemEncoder:
         :raises ValueError if num_symbols is not a non-zero square integer.
         """
         self.__clause_consumer = clause_consumer
-        self.__variable_factory = variable_factory
+        self.__lit_factory = lit_factory
         self.__num_symbols = num_symbols
 
         # Set up an at-most-1 constraint encoder:
         def __encode_at_most_1_constraint(constrained_lits):
-            for clause in encode_at_most_k_constraint_fn(variable_factory, 1, constrained_lits):
+            for clause in encode_at_most_k_constraint_fn(lit_factory, 1, constrained_lits):
                 clause_consumer.consume_clause(clause)
         self.__encode_at_most_1_constraint = __encode_at_most_1_constraint
 
         # __at is either None or a 3-dimensional array at[0...num_symbols-1][0...num_symbols-1][0...num_symbols-1]
-        # filled with distinct variables.
+        # filled with literals with literals with distinct SAT variables.
         # Encoding: __at[row][col][sym] is true :<=> cell (row,col) has symbol sym+1
         # This variable is initialized by self.__lazy_encode_general_sudoku_constraints().
         self.__at = None
@@ -238,7 +238,7 @@ class SudokuProblemEncoder:
 
         Post-conditions:
         __at is a 3-dimensional array at[0...__num_symbols-1][0...__num_symbols-1][0...__num_symbols-1]
-        filled with distinct SAT variables such that the following holds wrt. the SAT encoding:
+        filled with literals with distinct SAT variables such that the following holds wrt. the SAT encoding:
         __at[row][col][sym] is true <=> cell (row,col) has symbol sym+1
 
         :return: None
@@ -249,7 +249,7 @@ class SudokuProblemEncoder:
         num_symbols = self.__num_symbols
         self.__at = []
         for i in range(0, num_symbols):
-            row = [[self.__variable_factory.create_variable() for k in range(0, num_symbols)]
+            row = [[self.__lit_factory.create_literal() for k in range(0, num_symbols)]
                    for l in range(0, num_symbols)]
             self.__at.append(row)
 

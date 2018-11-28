@@ -1,17 +1,17 @@
 import abc
 
 
-class CNFVariableFactory(abc.ABC):
-    """A role interface for CNF variable factories, e.g. SAT solvers or CNF formula builders"""
+class CNFLiteralFactory(abc.ABC):
+    """A role interface for CNF literal factories, e.g. SAT solvers or CNF formula builders"""
 
     @abc.abstractmethod
-    def create_variable(self):
+    def create_literal(self):
         """
-        Creates a new variable that can be used in clauses passed to consume_clause.
+        Creates a literal with a new variable.
 
-        The type of the returned object is deliberately unspecified.
+        The concrete type of the returned object is deliberately unspecified.
 
-        :return: A variable that has not previously been returned by this method.
+        :return: A literal L such that neither L nor -L has previously been returned by this method.
         """
         pass
 
@@ -24,13 +24,13 @@ class ClauseConsumer(abc.ABC):
         """
         Consumes a clause.
 
-        :param clause: The clause to be consumed, a list of objects which have been created using create_variable().
+        :param clause: The clause to be consumed, a list of objects which have been created using create_literal().
         :return: None
         """
         pass
 
 
-class SatSolver(CNFVariableFactory, ClauseConsumer):
+class SatSolver(CNFLiteralFactory, ClauseConsumer):
     """An interface for SAT solvers."""
 
     @abc.abstractmethod
@@ -40,7 +40,7 @@ class SatSolver(CNFVariableFactory, ClauseConsumer):
 
         :param assumptions: A list of literals whose assignment shall be forced to true during the solving process.
                             For each literal l in assumptions, either l or -l must have been produced via
-                            create_variable().
+                            create_literal().
         :return: True if the problem is satisfiable; False if the problem is not satisfiable; None if the solver
                  did not reach a conclusion (e.g. due to a timeout).
         """
@@ -53,7 +53,7 @@ class SatSolver(CNFVariableFactory, ClauseConsumer):
 
         This method may only be called when the previous call to solve() returned True.
 
-        :param lit: A literal l such that l or -l has been produced via create_variable.
+        :param lit: A literal l such that l or -l has been produced via create_literal.
         :return: True if lit has a positive assignment, False if lit has a negative assignment, None if lit
                  has no assignment.
         """

@@ -58,7 +58,7 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
     def consume_clause(self, clause):
         self.__clauses.append(clause)
 
-    def create_variable(self):
+    def create_literal(self):
         var_id = self.__get_num_variables() + 1
         self.__variable_assignments.append(None)
         return var_id

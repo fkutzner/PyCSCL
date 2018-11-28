@@ -1,4 +1,4 @@
-from cscl.interfaces import CNFVariableFactory
+from cscl.interfaces import CNFLiteralFactory
 
 
 def subsets_of_size_k(collection, k):
@@ -32,7 +32,7 @@ def subsets_of_size_k(collection, k):
     return next_subsets + list(map(lambda x: extend_list(x, collection[0]), next_smaller_subsets))
 
 
-def encode_at_most_k_constraint_binomial(variable_factory: CNFVariableFactory, k: int, constrained_lits: list):
+def encode_at_most_k_constraint_binomial(lit_factory: CNFLiteralFactory, k: int, constrained_lits: list):
     """
     Creates a CNF constraint C such that for all literal assignments L of C, the following holds:
     At most k of the literals contained in constrained_lits are assigned true.
@@ -40,7 +40,7 @@ def encode_at_most_k_constraint_binomial(variable_factory: CNFVariableFactory, k
     This encoder uses the binomial encoding, producing len(constrained_lits) over k+1 clauses,
     each of size k. No new variables are introduced.
 
-    :param variable_factory: The variable factory to be used for creating new CNF variables.
+    :param lit_factory: The literal factory to be used for creating literals with new CNF variables.
     :param k: See above.
     :param constrained_lits: The literals to be constrained.
     :return: The constraint in CNF clausal form, a list of lists of literals.
@@ -52,7 +52,7 @@ def encode_at_most_k_constraint_binomial(variable_factory: CNFVariableFactory, k
     return result
 
 
-def encode_at_most_k_constraint_ltseq(variable_factory: CNFVariableFactory, k: int, constrained_lits: list):
+def encode_at_most_k_constraint_ltseq(lit_factory: CNFLiteralFactory, k: int, constrained_lits: list):
     """
     Creates a CNF constraint C such that for all literal assignments L of C, the following holds:
     At most k of the literals contained in constrained_lits are assigned true.
@@ -65,7 +65,7 @@ def encode_at_most_k_constraint_ltseq(variable_factory: CNFVariableFactory, k: i
      In Proc. of the 11th Intl. Conf. on Principles and Practice of Constraint Program-
      ming (CP 2005), pages 827–831, Sitges, Spain, October 2005.
 
-    :param variable_factory: The variable factory to be used for creating new CNF variables.
+    :param lit_factory: The literal factory to be used for creating literals with new CNF variables.
     :param k: See above.
     :param constrained_lits: The literals to be constrained.
     :return: The constraint in CNF clausal form, a list of lists of literals.
@@ -83,7 +83,7 @@ def encode_at_most_k_constraint_ltseq(variable_factory: CNFVariableFactory, k: i
     for i in range(0, n):
         register = []
         for j in range(0, k):
-            register.append(variable_factory.create_variable())
+            register.append(lit_factory.create_literal())
         registers.append(register)
     # registers[i][j] represents the j'th bit of register i
     # register[i] represents (as a unary number) the number of literals in constrained_lits[0],
