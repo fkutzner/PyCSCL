@@ -132,30 +132,6 @@ class TestEncodeAndGate(TestCase):
         self.encode_and_gate_n_ary_test_full(4)
 
 
-class TestEncodeBinaryXorGate(TestCase):
-    def test_encode_binary_xor_gate_returns_output_literal(self):
-        assert(encoder_returns_output_literal(encode_binary_xor_gate))
-
-    def test_encode_binary_xor_gate_returns_new_output_literal_by_default(self):
-        assert(encoder_returns_new_output_literal_by_default(encode_binary_xor_gate))
-
-    def test_encode_xor_gate_create_gate(self):
-        checker = TrivialSATSolver()
-        inputs = [checker.create_literal(), checker.create_literal()]
-        output = encode_binary_xor_gate(checker, checker, inputs)
-
-        l1, l2 = inputs[0], inputs[1]
-
-        assert (checker.solve([l1, l2, output]) is False)
-        assert (checker.solve([l1, l2, -output]) is True)
-        assert (checker.solve([-l1, -l2, output]) is False)
-        assert (checker.solve([-l1, -l2, -output]) is True)
-        assert (checker.solve([-l1, l2, output]) is True)
-        assert (checker.solve([-l1, l2, -output]) is False)
-        assert (checker.solve([l1, -l2, output]) is True)
-        assert (checker.solve([l1, -l2, -output]) is False)
-
-
 def create_trivial_sat_solver_with_n_vars(n):
     """
     Creates a TrivialSATSolver instance x with n variables for x.
@@ -241,6 +217,21 @@ class AbstractTruthTableBasedGateTest(abc.ABC):
             assert checker.solve(expected_unsat_setting) is False, \
                 "Gate failure for input setting " + str(input_bits) + ", output setting " + str(1-output_bit)\
                 + "\n(should not be satisfiable, but is)"
+
+
+class TestEncodeBinaryXorGate(AbstractTruthTableBasedGateTest, TestCase):
+
+    def get_gate_encoder_under_test(self):
+        return encode_binary_xor_gate
+
+    def get_gate_arity(self):
+        return 3
+
+    def get_spec_truth_table(self):
+        return (((0, 0), 0),
+                ((0, 1), 1),
+                ((1, 0), 1),
+                ((1, 1), 0))
 
 
 class TestEncodeBinaryMuxGate(AbstractTruthTableBasedGateTest, TestCase):
