@@ -549,6 +549,12 @@ class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
     def test_for_bv_width_3_with_overflow_out(self):
         self.__truthtable_based_test(3, use_overflow_lit=True)
 
+    def test_for_bv_width_4_no_overflow_out(self):
+        self.__truthtable_based_test(4, use_overflow_lit=False)
+
+    def test_for_bv_width_4_with_overflow_out(self):
+        self.__truthtable_based_test(4, use_overflow_lit=True)
+
     def test_refuses_input_bv_with_length_mismatch(self):
         lit_factory = TestLiteralFactory()
         clause_consumer = CollectingClauseConsumer()
