@@ -38,3 +38,80 @@ def encode_gate_vector(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralF
 
     return [basic_gate_encoder_fn(clause_consumer, lit_factory, (lhs, rhs), output_lit)
             for lhs, rhs, output_lit in zip(lhs_input_lits, rhs_input_lits, output_lits)]
+
+
+def encode_bv_and_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                       lhs_input_lits, rhs_input_lits, output_lits=None):
+    """
+    Encodes a bitvector AND gate.
+
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals.
+    :param rhs_input_lits: The list of right-hand-side input literals. The length of rhs_input_lits must
+                           be the same as the length of lhs_input_lits.
+    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
+                        each having a new variable, are created. Otherwise, output_lits must be a list
+                        with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :return: The list of gate output literals, containing len(lhs_input_lits) literals, with
+             output_lit[i] <-> (lhs_input_lits[i] AND rhs_input_lits[i]) for all i in
+             range(0, len(lhs_input_lits)).
+    """
+    return encode_gate_vector(clause_consumer, lit_factory,
+                              gates.encode_and_gate,
+                              lhs_input_lits, rhs_input_lits, output_lits)
+
+
+def encode_bv_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                      lhs_input_lits, rhs_input_lits, output_lits=None):
+    """
+    Encodes a bitvector OR gate.
+
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals.
+    :param rhs_input_lits: The list of right-hand-side input literals. The length of rhs_input_lits must
+                           be the same as the length of lhs_input_lits.
+    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
+                        each having a new variable, are created. Otherwise, output_lits must be a list
+                        with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :return: The list of gate output literals, containing len(lhs_input_lits) literals, with
+             output_lit[i] <-> (lhs_input_lits[i] OR rhs_input_lits[i]) for all i in
+             range(0, len(lhs_input_lits)).
+    """
+
+    return encode_gate_vector(clause_consumer, lit_factory,
+                              gates.encode_or_gate,
+                              lhs_input_lits, rhs_input_lits, output_lits)
+
+
+def encode_bv_xor_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                       lhs_input_lits, rhs_input_lits, output_lits=None):
+    """
+    Encodes a bitvector XOR gate.
+
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals.
+    :param rhs_input_lits: The list of right-hand-side input literals. The length of rhs_input_lits must
+                           be the same as the length of lhs_input_lits.
+    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
+                        each having a new variable, are created. Otherwise, output_lits must be a list
+                        with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :return: The list of gate output literals, containing len(lhs_input_lits) literals, with
+             output_lit[i] <-> (lhs_input_lits[i] XOR rhs_input_lits[i]) for all i in
+             range(0, len(lhs_input_lits)).
+    """
+
+    return encode_gate_vector(clause_consumer, lit_factory,
+                              gates.encode_binary_xor_gate,
+                              lhs_input_lits, rhs_input_lits, output_lits)
