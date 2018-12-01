@@ -156,124 +156,6 @@ class TestEncodeBinaryXorGate(TestCase):
         assert (checker.solve([l1, -l2, -output]) is False)
 
 
-def create_trivial_sat_solver_with_10_vars():
-    """
-    Creates a TrivialSATSolver instance x with 10 variables for x.
-
-    :return: (solver, variables). solver is the created solver, variables the list of
-             created variables.
-    """
-    solver = TrivialSATSolver()
-    variables = []
-    for i in range(0, 10):
-        variables.append(solver.create_literal())
-    return solver, variables
-
-
-def create_miter_problem(clause_consumer: ClauseConsumer, circuit1_output, circuit2_output):
-    """
-    Adds clauses to clause_consumer asserting that circuit1_output and circuit2_output
-    have distinct values.
-
-    This can be used to check the equivalency of gates g and h:
-    - Add the encoding of g to a fresh clause_consumer.
-    - Add the encoding of h to a fresh clause_consumer. The inputs of h must match the inputs of g.
-    - Let o_g be the output literal of g's encoding and o_h be the output literal of h's encoding.
-      Call create_miter_problem(clause_consumer, o_g, o_h). This creates a circuit equivalency
-      checking problem.
-    - g and h are equivalent if and only if the CNF problem instance consumed by clause_consumer
-      is unsatisfiable.
-
-    This type of circuit equivalency checking problem is called miter problem.
-
-    :param clause_consumer: A ClauseConsumer.
-    :param circuit1_output: Any literal.
-    :param circuit2_output: Any literal.
-    :return: None
-    """
-    clause_consumer.consume_clause([circuit1_output, circuit2_output])
-    clause_consumer.consume_clause([-circuit1_output, -circuit2_output])
-    return None
-
-
-def encode_binary_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                          input_lits, output_lit=None):
-    """
-    Creates a binary OR gate.
-
-    (Difference to production OR gate encoder: this is restricted to two inputs)
-
-    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
-    :param lit_factory: TODO
-    :param input_lits: The gate's input literals.
-    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
-                       new variable will be used as the gate's output literal.
-    :return: The encoded gate's output literal.
-    """
-    if output_lit is None:
-        output_lit = lit_factory.create_literal()
-
-    clause_consumer.consume_clause([input_lits[0], input_lits[1], -output_lit])
-    clause_consumer.consume_clause([-input_lits[0], output_lit])
-    clause_consumer.consume_clause([-input_lits[1], output_lit])
-
-    return output_lit
-
-
-def encode_binary_and_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                           input_lits, output_lit=None):
-    """
-    Creates a binary AND gate.
-
-    (Difference to production AND gate encoder: this is restricted to two inputs)
-
-    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
-    :param input_lits: The gate's input literals.
-    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
-                       new variable will be used as the gate's output literal.
-    :return: The encoded gate's output literal.
-    """
-    if output_lit is None:
-        output_lit = lit_factory.create_literal()
-
-    clause_consumer.consume_clause([-input_lits[0], -input_lits[1], output_lit])
-    clause_consumer.consume_clause([input_lits[0], -output_lit])
-    clause_consumer.consume_clause([input_lits[1], -output_lit])
-
-    return output_lit
-
-
-class TestEncodeBinaryMuxGate(TestCase):
-    def test_encode_binary_mux_gate_returns_output_literal(self):
-        checker, variables = create_trivial_sat_solver_with_10_vars()
-        result = encode_binary_mux_gate(checker, checker, [variables[0], variables[1], variables[2]], variables[3])
-        assert result == variables[3]
-
-    def test_encode_binary_mux_gate_returns_new_output_literal_by_default(self):
-        checker, variables = create_trivial_sat_solver_with_10_vars()
-        result = encode_binary_mux_gate(checker, checker, [variables[0], variables[1], variables[2]])
-        assert result not in variables and -result not in variables
-
-    def test_encode_binary_mux_gate_is_equivalent_to_crafted_mux_gate(self):
-        # Prove equivalency to a crafted binary MUX gate:
-        checker, variables = create_trivial_sat_solver_with_10_vars()
-        sel, lhs, rhs = variables[0:3]
-
-        # Add production MUX:
-        logging_checker = LoggingClauseConsumerDecorator(checker)
-        production_mux_out = encode_binary_mux_gate(logging_checker, checker, [sel, lhs, rhs])
-
-        # Add crafted MUX:
-        lhs_active_out = encode_binary_and_gate(checker, checker, [-sel, lhs])
-        rhs_active_out = encode_binary_and_gate(checker, checker, [sel, rhs])
-        crafted_mux_out = encode_binary_or_gate(checker, checker, [lhs_active_out, rhs_active_out])
-
-        # Prove equivalency:
-        create_miter_problem(checker, production_mux_out, crafted_mux_out)
-        assert (checker.solve() is False), \
-            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(crafted_mux_out) + ")"
-
-
 def create_trivial_sat_solver_with_n_vars(n):
     """
     Creates a TrivialSATSolver instance x with n variables for x.
@@ -361,6 +243,25 @@ class AbstractTruthTableBasedGateTest(abc.ABC):
                 + "\n(should not be satisfiable, but is)"
 
 
+class TestEncodeBinaryMuxGate(AbstractTruthTableBasedGateTest, TestCase):
+
+    def get_gate_encoder_under_test(self):
+        return encode_binary_mux_gate
+
+    def get_gate_arity(self):
+        return 3
+
+    def get_spec_truth_table(self):
+        return (((0, 0, 0), 0),
+                ((0, 0, 1), 0),
+                ((0, 1, 0), 1),
+                ((0, 1, 1), 1),
+                ((1, 0, 0), 0),
+                ((1, 0, 1), 1),
+                ((1, 1, 0), 0),
+                ((1, 1, 1), 1))
+
+
 class TestEncodeFullAdderSumGate(AbstractTruthTableBasedGateTest, TestCase):
 
     def get_gate_encoder_under_test(self):
@@ -399,19 +300,45 @@ class TestEncodeFullAdderCarryGate(AbstractTruthTableBasedGateTest, TestCase):
                 ((1, 1, 1), 1))
 
 
+def create_miter_problem(clause_consumer: ClauseConsumer, circuit1_output, circuit2_output):
+    """
+    Adds clauses to clause_consumer asserting that circuit1_output and circuit2_output
+    have distinct values.
+
+    This can be used to check the equivalency of gates g and h:
+    - Add the encoding of g to a fresh clause_consumer.
+    - Add the encoding of h to a fresh clause_consumer. The inputs of h must match the inputs of g.
+    - Let o_g be the output literal of g's encoding and o_h be the output literal of h's encoding.
+      Call create_miter_problem(clause_consumer, o_g, o_h). This creates a circuit equivalency
+      checking problem.
+    - g and h are equivalent if and only if the CNF problem instance consumed by clause_consumer
+      is unsatisfiable.
+
+    This type of circuit equivalency checking problem is called miter problem.
+
+    :param clause_consumer: A ClauseConsumer.
+    :param circuit1_output: Any literal.
+    :param circuit2_output: Any literal.
+    :return: None
+    """
+    clause_consumer.consume_clause([circuit1_output, circuit2_output])
+    clause_consumer.consume_clause([-circuit1_output, -circuit2_output])
+    return None
+
+
 class TestEncodeCNFConstraintAsGate(TestCase):
     def test_encode_cnf_constraint_as_gate_returns_output_literal(self):
-        checker, variables = create_trivial_sat_solver_with_10_vars()
+        checker, variables = create_trivial_sat_solver_with_n_vars(10)
         result = encode_cnf_constraint_as_gate(checker, checker, [[variables[0]], [variables[1]]], variables[2])
         assert result == variables[2]
 
     def test_encode_cnf_constraint_as_gate_returns_new_output_literal_by_default(self):
-        checker, variables = create_trivial_sat_solver_with_10_vars()
+        checker, variables = create_trivial_sat_solver_with_n_vars(10)
         result = encode_cnf_constraint_as_gate(checker, checker, [[variables[0]], [variables[1]]])
         return result not in variables and -result not in variables
 
     def test_encode_cnf_constraint_as_gate_encodes_empty_constraint_as_true(self):
-        checker, variables = create_trivial_sat_solver_with_10_vars()
+        checker, variables = create_trivial_sat_solver_with_n_vars(10)
         logging_checker = LoggingClauseConsumerDecorator(checker)
         output = encode_cnf_constraint_as_gate(logging_checker, checker, [])
         assert (checker.solve([-output]) is False),\
@@ -420,7 +347,7 @@ class TestEncodeCNFConstraintAsGate(TestCase):
             "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
 
     def test_encode_cnf_constraint_as_gate_encodes_negation(self):
-        checker, variables = create_trivial_sat_solver_with_10_vars()
+        checker, variables = create_trivial_sat_solver_with_n_vars(10)
         logging_checker = LoggingClauseConsumerDecorator(checker)
         output = encode_cnf_constraint_as_gate(logging_checker, checker, [[-variables[0]]])
         assert (checker.solve([variables[0], output]) is False),\
@@ -429,7 +356,7 @@ class TestEncodeCNFConstraintAsGate(TestCase):
             "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
 
     def test_encode_cnf_constraint_as_gate_encodes_or(self):
-        checker, variables = create_trivial_sat_solver_with_10_vars()
+        checker, variables = create_trivial_sat_solver_with_n_vars(10)
         logging_checker = LoggingClauseConsumerDecorator(checker)
         output = encode_cnf_constraint_as_gate(logging_checker, checker, [[variables[0], variables[1]]])
 
@@ -443,7 +370,7 @@ class TestEncodeCNFConstraintAsGate(TestCase):
             "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
 
     def test_encode_cnf_constraint_as_gate_encodes_xor(self):
-        checker, variables = create_trivial_sat_solver_with_10_vars()
+        checker, variables = create_trivial_sat_solver_with_n_vars(10)
         logging_checker = LoggingClauseConsumerDecorator(checker)
         output = encode_cnf_constraint_as_gate(logging_checker, checker, [[variables[0], variables[1]],
                                                                           [-variables[0], -variables[1]]])
