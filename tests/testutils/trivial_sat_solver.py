@@ -3,12 +3,12 @@ import cscl.interfaces
 
 class TrivialSATSolver(cscl.interfaces.SatSolver):
     """
-    A trivial SAT solver.
+    A simple DPLL-like SAT solver.
 
     This solver is intended for testing constraint encoders and, due to its extremely simple
     implementation, should only be used for problems with a small amount of variables (<= 20)
-    and a small amount of clauses (<= 100). This solver is deliberately kept as simple as
-    possible to avoid bugs within the test infrastructure.
+    and a small amount of clauses (<= 100). This solver is deliberately kept simple to avoid
+    bugs within the test infrastructure.
     """
 
     def __init__(self):
@@ -29,40 +29,91 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
             return None
         return var_assgn if lit > 0 else not var_assgn
 
-    def __is_satisfied(self, clause):
-        for lit in clause:
-            if self.__get_assignment(lit) is not False:
-                return True
-        return False
+    def __get_clause_status(self, clause):
+        """
+        Gets the status of a given clause.
 
-    def __solve(self, assumptions, current_var, assignment):
+        :param clause: A clause.
+        :return: A tuple (c, l) representing the clause status. If c is True, the current variable assignment falsifies
+                 the given clause and l has the value None. If c is False and l is not None, l is the single literal l
+                 in the given clause with l having an indeterminate value. If c is False and l is None, the clause
+                 contains multiple literals with indeterminate values.
+        """
+        amnt_indeterminate_lits = 0
+        last_indeterminate_lit = None
+        for lit in clause:
+            assignment = self.__get_assignment(lit)
+            if assignment is True:
+                return False, None  # no conflict, no forced assignment
+            if assignment is None:
+                last_indeterminate_lit = lit
+                amnt_indeterminate_lits += 1
+
+        if amnt_indeterminate_lits == 0:
+            return True, None  # conflict, no forced assignment
+        elif amnt_indeterminate_lits == 1:
+            return False, last_indeterminate_lit  # no conflict, but forced assignment last_indeterminate_lit
+        else:
+            return False, None  # no conflict, no forced assignment
+
+    def __propagate(self, root_propagation_lit):
+        """
+        Performs all variable assignments forced due to the current setting of root_propagation_lit.
+
+        :param root_propagation_lit: The assignment to propagate. The value of root_propagation_lit must be determinate.
+        :return: A tuple (c, l). l is the list of additional assignments made during propagation, represented as
+                 literals whose value is True. The assignment is consistent with the clauses iff c is False.
+        """
+        propagation_queue = [root_propagation_lit]
+        level_assignments = [root_propagation_lit]
+
+        while len(propagation_queue) > 0:
+            lit_to_propagate = propagation_queue.pop()
+            possibly_false_clauses = self.__lit_occurrence_map[-lit_to_propagate]
+            for clause in possibly_false_clauses:
+                is_conflict, propagation_lit = self.__get_clause_status(clause)
+                if is_conflict:
+                    return True, level_assignments
+                elif propagation_lit is not None:
+                    level_assignments.append(propagation_lit)
+                    self.__set_assignment(abs(propagation_lit), propagation_lit > 0)
+                    propagation_queue.append(propagation_lit)
+        return False, level_assignments
+
+    def __solve(self, current_var, assignment):
+        self.__set_assignment(current_var, assignment)
         current_lit = current_var * (1 if assignment else -1)
-        if -current_lit in assumptions:
+
+        conflict_detected, level_assignments = self.__propagate(current_lit)
+
+        def __undo_current_level_assignments():
+            for x in level_assignments:
+                self.__set_assignment(abs(x), None)
+
+        if conflict_detected:
+            __undo_current_level_assignments()
             return False
 
-        self.__set_assignment(current_var, assignment)
-
-        possibly_false_clauses = self.__lit_occurrence_map[-current_lit]
-
-        for clause in possibly_false_clauses:
-            if not self.__is_satisfied(clause):
-                self.__set_assignment(current_var, None)
-                return False
-
         next_var = current_var+1
+        while next_var <= self.__get_num_variables() and (self.__get_assignment(next_var) is not None):
+            next_var = next_var+1
+
         if next_var > self.__get_num_variables():
             self.__last_model = self.__variable_assignments[:]
-            self.__set_assignment(current_var, None)
+            __undo_current_level_assignments()
             return True
 
-        result = self.__solve(assumptions, next_var, False) or self.__solve(assumptions, next_var, True)
-        self.__set_assignment(current_var, None)
+        result = self.__solve(next_var, False) or self.__solve(next_var, True)
+        __undo_current_level_assignments()
         return result
 
     def consume_clause(self, clause):
-        self.__clauses.append(clause)
-        for lit in clause:
-            self.__lit_occurrence_map[lit].append(clause)
+        # The clause status getter function relies on each clause containing distinct literals:
+        shrinked_clause = list(set(clause))
+        shrinked_clause.sort()
+        self.__clauses.append(shrinked_clause)
+        for lit in shrinked_clause:
+            self.__lit_occurrence_map[lit].append(shrinked_clause)
 
     def create_literal(self):
         var_id = self.__get_num_variables() + 1
@@ -77,8 +128,17 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
         if self.__get_num_variables() == 0:
             return True
 
-        assumption_set = set(assumptions)
-        return self.__solve(assumption_set, 1, False) or self.__solve(assumption_set, 1, True)
+        # Cleaning up the variable setting in case the solver is being invoked incrementally:
+        for i in range(1, self.__get_num_variables()+1):
+            self.__set_assignment(i, None)
+
+        for assumption in assumptions:
+            self.__set_assignment(abs(assumption), assumption > 0)
+            conflict_detected, _ = self.__propagate(assumption)
+            if conflict_detected:
+                return False
+
+        return self.__solve(1, False) or self.__solve(1, True)
 
     def get_assignment(self, lit):
         assert self.__last_model is not None
