@@ -106,6 +106,68 @@ def encode_binary_mux_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLite
     return output_lit
 
 
+def encode_full_adder_sum_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                               input_lits, output_lit=None):
+    """
+    Creates the sum gate of a full adder.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param input_lits: The gate's input literals, a list of three literals [lhs, rhs, c_in] with lhs
+                       and rhs being the addends and c_in being the carry input.
+    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
+                       new variable will be used as the gate's output literal.
+    :return: The encoded gate's output literal.
+    """
+
+    if output_lit is None:
+        output_lit = lit_factory.create_literal()
+
+    lhs, rhs, c_in = input_lits
+
+    for x in [[lhs, rhs, c_in, -output_lit],
+              [lhs, -rhs, -c_in, -output_lit],
+              [lhs, -rhs, c_in, output_lit],
+              [lhs, rhs, -c_in, output_lit],
+              [-lhs, rhs, c_in, output_lit],
+              [-lhs, -rhs, -c_in, output_lit],
+              [-lhs, -rhs, c_in, -output_lit],
+              [-lhs, rhs, -c_in, -output_lit]]:
+        clause_consumer.consume_clause(x)
+
+    return output_lit
+
+
+def encode_full_adder_carry_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                                 input_lits, output_lit=None):
+    """
+    Creates the carry gate of a full adder.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param input_lits: The gate's input literals, a list of three literals [lhs, rhs, c_in] with lhs
+                       and rhs being the addends and c_in being the carry input.
+    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
+                       new variable will be used as the gate's output literal.
+    :return: The encoded gate's output literal.
+    """
+
+    if output_lit is None:
+        output_lit = lit_factory.create_literal()
+
+    lhs, rhs, c_in = input_lits
+
+    for x in [[lhs, rhs, -output_lit],
+              [lhs, c_in, -output_lit],
+              [lhs, -rhs, -c_in, output_lit],
+              [-lhs, rhs, c_in, -output_lit],
+              [-lhs, -rhs, output_lit],
+              [-lhs, -c_in, output_lit]]:
+        clause_consumer.consume_clause(x)
+
+    return output_lit
+
+
 def encode_cnf_constraint_as_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
                                   formula, output_lit=None):
     """

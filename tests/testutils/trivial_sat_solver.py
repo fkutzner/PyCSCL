@@ -81,3 +81,6 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
         if var_assgn is None:
             return None
         return var_assgn if lit > 0 else not var_assgn
+
+    def has_variable_of_lit(self, lit):
+        return abs(lit) <= self.__get_num_variables()
