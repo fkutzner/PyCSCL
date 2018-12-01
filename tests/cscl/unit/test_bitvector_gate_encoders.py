@@ -324,12 +324,19 @@ class TestEncodeBVXorGate(unittest.TestCase, AbstractTestBasicBitvectorGateEncod
         return cscl.basic_gate_encoders.encode_binary_xor_gate
 
 
+def int_to_bitvec(i, result_width):
+    assert i >= 0
+    return tuple(1 if (i & 1 << idx) != 0 else 0 for idx in range(0, result_width))
+
+
+def apply_truth_table_setting(positive_lits, setting):
+    return [x if s >= 1 else -x for x, s in zip(positive_lits, setting)]
+
+
 class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
 
     @staticmethod
     def __test_for_truth_table(arity, use_carry_in, use_carry_out, truth_table):
-        def __apply_truth_table_setting(positive_lits, setting):
-            return [x if s >= 1 else -x for x, s in zip(positive_lits, setting)]
 
         for table_entry in truth_table:
             input_setting, output_setting = table_entry
@@ -350,12 +357,12 @@ class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
                                                                 carry_out_lit=carry_out)
 
             # Compute the SAT solver assumption setting for this entry:
-            probe_lhs = __apply_truth_table_setting(lhs_input_lits, lhs_setting)
-            probe_rhs = __apply_truth_table_setting(rhs_input_lits, rhs_setting)
+            probe_lhs = apply_truth_table_setting(lhs_input_lits, lhs_setting)
+            probe_rhs = apply_truth_table_setting(rhs_input_lits, rhs_setting)
             if use_carry_in:
                 probe_lhs.append(carry_in if carry_in_setting >= 1 else -carry_in)
 
-            probe_out = __apply_truth_table_setting(output_lits, output_setting)
+            probe_out = apply_truth_table_setting(output_lits, output_setting)
             if use_carry_out:
                 probe_out.append(carry_out if carry_out_setting >= 1 else -carry_out)
 
@@ -378,10 +385,6 @@ class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
     def __generate_full_truth_table(input_width, carry_in_settings):
         result = []
 
-        def __int_to_bitvec(i, result_width):
-            assert i >= 0
-            return tuple(1 if (i & 1 << idx) != 0 else 0 for idx in range(0, result_width))
-
         for lhs_setting in range(0, 2**input_width):
             for rhs_setting in range(0, 2**input_width):
                 for carry_in_setting in carry_in_settings:
@@ -392,10 +395,10 @@ class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
                     if expected_carry_output == 1:
                         expected_output = expected_output ^ 2**input_width
 
-                    input_setting = (__int_to_bitvec(lhs_setting, input_width),
-                                     __int_to_bitvec(rhs_setting, input_width),
+                    input_setting = (int_to_bitvec(lhs_setting, input_width),
+                                     int_to_bitvec(rhs_setting, input_width),
                                      carry_in_setting)
-                    output_setting = (__int_to_bitvec(expected_output, input_width),
+                    output_setting = (int_to_bitvec(expected_output, input_width),
                                       expected_carry_output)
 
                     result.append((input_setting, output_setting))
@@ -454,3 +457,138 @@ class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
 
     def test_for_bv_width_4_all_carries(self):
         self.__truthtable_based_test(4, use_carry_in=True, use_carry_out=True)
+
+
+class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
+
+    @staticmethod
+    def __test_for_truth_table(arity, use_overflow_lit, truth_table):
+        for table_entry in truth_table:
+            input_setting, output_setting = table_entry
+            lhs_setting, rhs_setting = input_setting
+            output_setting, overflow_setting = output_setting
+
+            checker = TrivialSATSolver()
+            clause_consumer = LoggingClauseConsumerDecorator(checker)
+
+            lhs_input_lits = [checker.create_literal() for _ in range(0, arity)]
+            rhs_input_lits = [checker.create_literal() for _ in range(0, arity)]
+            overflow_lit = checker.create_literal() if use_overflow_lit else None
+
+            output_lits = bvg.encode_bv_naive_unsigned_mul(clause_consumer, checker,
+                                                           lhs_input_lits, rhs_input_lits, overflow_lit=overflow_lit)
+
+            probe_lhs = apply_truth_table_setting(lhs_input_lits, lhs_setting)
+            probe_rhs = apply_truth_table_setting(rhs_input_lits, rhs_setting)
+            probe_output = apply_truth_table_setting(output_lits, output_setting)
+            if use_overflow_lit:
+                probe_output.append(overflow_lit if overflow_setting > 0 else -overflow_lit)
+
+            probe_input = probe_lhs + probe_rhs
+
+            # Check that the setting satisfies the constraint
+            assumptions_pos = probe_input + probe_output
+            has_correct_value = checker.solve(assumptions_pos)
+            if not has_correct_value:
+                checker.solve(probe_input)
+                print("The gate forces an incorrect model:")
+                checker.print_model()
+
+            assert has_correct_value,\
+                "Encoding failed for truth table entry " + str(table_entry) + "\n(should be satisfiable, but is not)" \
+                + "\nEncoding:\n" + clause_consumer.to_string() \
+                + "\nAssumptions: " + str(assumptions_pos)
+
+            # Check that no other output setting satisfies the constraint
+            clause_consumer.consume_clause([-x for x in probe_output])
+            assumptions_neg = probe_input
+            is_functional_rel = not checker.solve(assumptions_neg)
+            if not is_functional_rel:
+                print("Unexpectedly found model:")
+                checker.print_model()
+            assert is_functional_rel,\
+                "Encoding failed for truth table entry " + str(table_entry) + "\n(function property violated)"\
+                + "\nEncoding:\n" + clause_consumer.to_string()\
+                + "\nAssumptions: " + str(assumptions_neg)
+
+    @staticmethod
+    def __generate_full_truth_table(input_width):
+        result = []
+
+        for lhs_setting in range(0, 2 ** input_width):
+            for rhs_setting in range(0, 2 ** input_width):
+                expected_output = lhs_setting * rhs_setting
+                expected_overflow = 1 if ((expected_output >> input_width) != 0) else 0
+                expected_output = expected_output & ((1 << input_width) - 1)
+                input_setting = (int_to_bitvec(lhs_setting, input_width),
+                                 int_to_bitvec(rhs_setting, input_width))
+                output_setting = (int_to_bitvec(expected_output, input_width),
+                                  expected_overflow)
+                result.append((input_setting, output_setting))
+        return result
+
+    def __truthtable_based_test(self, input_width, use_overflow_lit):
+        truth_table = self.__generate_full_truth_table(input_width=input_width)
+        self.__test_for_truth_table(input_width, use_overflow_lit=use_overflow_lit, truth_table=truth_table)
+
+    def test_for_bv_width_1_no_overflow_out(self):
+        self.__truthtable_based_test(1, use_overflow_lit=False)
+
+    def test_for_bv_width_1_with_overflow_out(self):
+        self.__truthtable_based_test(1, use_overflow_lit=True)
+
+    def test_for_bv_width_2_no_overflow_out(self):
+        self.__truthtable_based_test(2, use_overflow_lit=False)
+
+    def test_for_bv_width_2_with_overflow_out(self):
+        self.__truthtable_based_test(2, use_overflow_lit=True)
+
+    def test_for_bv_width_3_no_overflow_out(self):
+        self.__truthtable_based_test(3, use_overflow_lit=False)
+
+    def test_for_bv_width_3_with_overflow_out(self):
+        self.__truthtable_based_test(3, use_overflow_lit=True)
+
+    def test_refuses_input_bv_with_length_mismatch(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
+
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 2)]
+
+        with self.assertRaises(ValueError):
+            bvg.encode_bv_naive_unsigned_mul(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
+
+    def test_refuses_output_bv_with_length_mismatch(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
+
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        output_lits = [lit_factory.create_literal() for _ in range(0, 2)]
+
+        with self.assertRaises(ValueError):
+            bvg.encode_bv_naive_unsigned_mul(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits,
+                                             output_lits)
+
+    def test_uses_returns_output_literals(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
+
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        output_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        result = bvg.encode_bv_naive_unsigned_mul(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits,
+                                                  output_lits)
+        assert result == output_lits
+
+    def test_creates_output_literals_if_none_provided(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
+
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        all_inputs = lhs_input_lits + rhs_input_lits
+        result = bvg.encode_bv_naive_unsigned_mul(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
+        assert not any(x in all_inputs for x in result)
+        assert not any(-x in all_inputs for x in result)

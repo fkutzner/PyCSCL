@@ -84,3 +84,8 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
 
     def has_variable_of_lit(self, lit):
         return abs(lit) <= self.__get_num_variables()
+
+    def print_model(self):
+        assert self.__last_model is not None
+        for i in range(0, self.__get_num_variables()):
+            print("Var: " + str(i+1) + "\t Value: " + str(self.get_assignment(i+1)))
