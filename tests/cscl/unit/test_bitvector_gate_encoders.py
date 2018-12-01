@@ -1,8 +1,11 @@
 import abc
 import unittest
+import itertools
 import cscl.bitvector_gate_encoders as bvg
 import cscl.interfaces as cscl_if
 import cscl.basic_gate_encoders
+from tests.testutils.trivial_sat_solver import TrivialSATSolver
+from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
 
 class TestLiteralFactory(cscl_if.CNFLiteralFactory):
@@ -319,3 +322,135 @@ class TestEncodeBVXorGate(unittest.TestCase, AbstractTestBasicBitvectorGateEncod
 
     def get_basic_gate_encoder_of_bv_gate_encoder(self):
         return cscl.basic_gate_encoders.encode_binary_xor_gate
+
+
+class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
+
+    @staticmethod
+    def __test_for_truth_table(arity, use_carry_in, use_carry_out, truth_table):
+        def __apply_truth_table_setting(positive_lits, setting):
+            return [x if s >= 1 else -x for x, s in zip(positive_lits, setting)]
+
+        for table_entry in truth_table:
+            input_setting, output_setting = table_entry
+            lhs_setting, rhs_setting, carry_in_setting = input_setting
+            output_setting, carry_out_setting = output_setting
+
+            checker = TrivialSATSolver()
+
+            lhs_input_lits = [checker.create_literal() for _ in range(0, arity)]
+            rhs_input_lits = [checker.create_literal() for _ in range(0, arity)]
+            carry_in = checker.create_literal() if use_carry_in else None
+            carry_out = checker.create_literal() if use_carry_out else None
+
+            clause_consumer = LoggingClauseConsumerDecorator(checker)
+            output_lits = bvg.encode_bv_ripple_carry_adder_gate(clause_consumer, checker,
+                                                                lhs_input_lits, rhs_input_lits,
+                                                                output_lits=None, carry_in_lit=carry_in,
+                                                                carry_out_lit=carry_out)
+
+            # Compute the SAT solver assumption setting for this entry:
+            probe_lhs = __apply_truth_table_setting(lhs_input_lits, lhs_setting)
+            probe_rhs = __apply_truth_table_setting(rhs_input_lits, rhs_setting)
+            if use_carry_in:
+                probe_lhs.append(carry_in if carry_in_setting >= 1 else -carry_in)
+
+            probe_out = __apply_truth_table_setting(output_lits, output_setting)
+            if use_carry_out:
+                probe_out.append(carry_out if carry_out_setting >= 1 else -carry_out)
+
+            # Check that the truth table entry satisfies the encoding:
+            assumptions_pos = list(itertools.chain(probe_lhs, probe_rhs, probe_out))
+            assert checker.solve(assumptions_pos) is True,\
+                "Encoding failed for truth table entry " + str(table_entry) + "\n(should be satisfiable, but is not)"\
+                + "\nEncoding:\n" + clause_consumer.to_string()\
+                + "\nAssumptions: " + str([x for x in assumptions_pos])
+
+            # Check that the gate encodes a function by excluding the output configuration:
+            clause_consumer.consume_clause([-x for x in probe_out])
+            assumptions_neg = list(itertools.chain(probe_lhs, probe_rhs))
+            assert checker.solve(assumptions_neg) is False,\
+                "Encoding failed for truth table entry " + str(table_entry) + "\n(function property violated)"\
+                + "\nEncoding:\n" + clause_consumer.to_string()\
+                + "\nAssumptions: " + str([x for x in assumptions_neg])
+
+    @staticmethod
+    def __generate_full_truth_table(input_width, carry_in_settings):
+        result = []
+
+        def __int_to_bitvec(i, result_width):
+            assert i >= 0
+            return tuple(1 if (i & 1 << idx) != 0 else 0 for idx in range(0, result_width))
+
+        for lhs_setting in range(0, 2**input_width):
+            for rhs_setting in range(0, 2**input_width):
+                for carry_in_setting in carry_in_settings:
+                    expected_output = lhs_setting + rhs_setting + carry_in_setting
+                    expected_carry_output = 1 if expected_output & 2**input_width != 0 else 0
+
+                    # Remove "overflowing" bit from output:
+                    if expected_carry_output == 1:
+                        expected_output = expected_output ^ 2**input_width
+
+                    input_setting = (__int_to_bitvec(lhs_setting, input_width),
+                                     __int_to_bitvec(rhs_setting, input_width),
+                                     carry_in_setting)
+                    output_setting = (__int_to_bitvec(expected_output, input_width),
+                                      expected_carry_output)
+
+                    result.append((input_setting, output_setting))
+        return result
+
+    def __truthtable_based_test(self, input_width, use_carry_in, use_carry_out):
+        carry_in_settings = [0, 1] if use_carry_in else [0]
+        truth_table = self.__generate_full_truth_table(input_width=input_width, carry_in_settings=carry_in_settings)
+        self.__test_for_truth_table(input_width, use_carry_in=use_carry_in, use_carry_out=use_carry_out,
+                                    truth_table=truth_table)
+
+    def test_for_bv_width_1_no_carries(self):
+        self.__truthtable_based_test(1, use_carry_in=False, use_carry_out=False)
+
+    def test_for_bv_width_1_input_carry(self):
+        self.__truthtable_based_test(1, use_carry_in=True, use_carry_out=False)
+
+    def test_for_bv_width_1_output_carry(self):
+        self.__truthtable_based_test(1, use_carry_in=False, use_carry_out=True)
+
+    def test_for_bv_width_1_all_carries(self):
+        self.__truthtable_based_test(1, use_carry_in=True, use_carry_out=True)
+
+    def test_for_bv_width_2_no_carries(self):
+        self.__truthtable_based_test(2, use_carry_in=False, use_carry_out=False)
+
+    def test_for_bv_width_2_input_carry(self):
+        self.__truthtable_based_test(2, use_carry_in=True, use_carry_out=False)
+
+    def test_for_bv_width_2_output_carry(self):
+        self.__truthtable_based_test(2, use_carry_in=False, use_carry_out=True)
+
+    def test_for_bv_width_2_all_carries(self):
+        self.__truthtable_based_test(2, use_carry_in=True, use_carry_out=True)
+
+    def test_for_bv_width_3_no_carries(self):
+        self.__truthtable_based_test(3, use_carry_in=False, use_carry_out=False)
+
+    def test_for_bv_width_3_input_carry(self):
+        self.__truthtable_based_test(3, use_carry_in=True, use_carry_out=False)
+
+    def test_for_bv_width_3_output_carry(self):
+        self.__truthtable_based_test(3, use_carry_in=False, use_carry_out=True)
+
+    def test_for_bv_width_3_all_carries(self):
+        self.__truthtable_based_test(3, use_carry_in=True, use_carry_out=True)
+
+    def test_for_bv_width_4_no_carries(self):
+        self.__truthtable_based_test(4, use_carry_in=False, use_carry_out=False)
+
+    def test_for_bv_width_4_input_carry(self):
+        self.__truthtable_based_test(4, use_carry_in=True, use_carry_out=False)
+
+    def test_for_bv_width_4_output_carry(self):
+        self.__truthtable_based_test(4, use_carry_in=False, use_carry_out=True)
+
+    def test_for_bv_width_4_all_carries(self):
+        self.__truthtable_based_test(4, use_carry_in=True, use_carry_out=True)
