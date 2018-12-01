@@ -15,7 +15,7 @@ def encode_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFacto
     if output_lit is None:
         output_lit = lit_factory.create_literal()
 
-    fwd_clause = input_lits[:]
+    fwd_clause = list(input_lits)
     fwd_clause.append(-output_lit)
     clause_consumer.consume_clause(fwd_clause)
 
