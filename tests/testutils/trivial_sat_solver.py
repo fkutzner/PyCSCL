@@ -13,6 +13,7 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
 
     def __init__(self):
         self.__clauses = []
+        self.__lit_occurrence_map = {}
         self.__variable_assignments = []
         self.__last_model = None
 
@@ -35,12 +36,15 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
         return False
 
     def __solve(self, assumptions, current_var, assignment):
-        if (current_var * (-1 if assignment else 1)) in assumptions:
+        current_lit = current_var * (1 if assignment else -1)
+        if -current_lit in assumptions:
             return False
 
         self.__set_assignment(current_var, assignment)
 
-        for clause in self.__clauses:
+        possibly_false_clauses = self.__lit_occurrence_map[-current_lit]
+
+        for clause in possibly_false_clauses:
             if not self.__is_satisfied(clause):
                 self.__set_assignment(current_var, None)
                 return False
@@ -57,13 +61,17 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
 
     def consume_clause(self, clause):
         self.__clauses.append(clause)
+        for lit in clause:
+            self.__lit_occurrence_map[lit].append(clause)
 
     def create_literal(self):
         var_id = self.__get_num_variables() + 1
         self.__variable_assignments.append(None)
+        self.__lit_occurrence_map[var_id] = []
+        self.__lit_occurrence_map[-var_id] = []
         return var_id
 
-    def solve(self, assumptions=[]):
+    def solve(self, assumptions=()):
         if any((len(elem) == 0) for elem in self.__clauses):
             return False
         if self.__get_num_variables() == 0:
