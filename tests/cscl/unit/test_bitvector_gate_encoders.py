@@ -627,11 +627,6 @@ class AbstractTestUnsignedBVMultiplierGate(abc.ABC):
         assert not any(-x in all_inputs for x in result)
 
 
-class TestEncodeNaiveUnsignedBVMultiplierGate(unittest.TestCase, AbstractTestUnsignedBVMultiplierGate):
-    def get_bv_umul_encoder_under_test(self):
-        return bvg.encode_bv_naive_unsigned_mul_gate
-
-
 class TestEncodeParallelUnsignedBVMultiplierGate(unittest.TestCase, AbstractTestUnsignedBVMultiplierGate):
     def get_bv_umul_encoder_under_test(self):
         return bvg.encode_bv_parallel_unsigned_mul_gate
