@@ -138,7 +138,13 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
             if conflict_detected:
                 return False
 
-        return self.__solve(1, False) or self.__solve(1, True)
+        initial_var = 1
+        while initial_var <= self.__get_num_variables() and (self.__get_assignment(initial_var) is not None):
+            initial_var = initial_var + 1
+        if initial_var > self.__get_num_variables():
+            return True
+
+        return self.__solve(initial_var, False) or self.__solve(initial_var, True)
 
     def get_assignment(self, lit):
         assert self.__last_model is not None
