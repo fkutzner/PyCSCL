@@ -459,10 +459,25 @@ class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
         self.__truthtable_based_test(4, use_carry_in=True, use_carry_out=True)
 
 
-class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
+class AbstractTestUnsignedBVMultiplierGate(abc.ABC):
 
-    @staticmethod
-    def __test_for_truth_table(arity, use_overflow_lit, truth_table):
+    def __init__(self):
+        # This mixin may only be used with test cases, since it uses assertRaises:
+        assert isinstance(self, unittest.TestCase)
+
+    @abc.abstractmethod
+    def get_bv_umul_encoder_under_test(self):
+        """
+        Gets the bitvector gate encoder under test.
+
+        :return: the bitvector gate encoder under test, a function having the same
+                 signature as the encode_bv_and_gate function.
+        """
+        pass
+
+    def __test_for_truth_table(self, arity, use_overflow_lit, truth_table):
+        encoder_under_test = self.get_bv_umul_encoder_under_test()
+
         for table_entry in truth_table:
             input_setting, output_setting = table_entry
             lhs_setting, rhs_setting = input_setting
@@ -475,8 +490,8 @@ class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
             rhs_input_lits = [checker.create_literal() for _ in range(0, arity)]
             overflow_lit = checker.create_literal() if use_overflow_lit else None
 
-            output_lits = bvg.encode_bv_naive_unsigned_mul(clause_consumer, checker,
-                                                           lhs_input_lits, rhs_input_lits, overflow_lit=overflow_lit)
+            output_lits = encoder_under_test(clause_consumer, checker,
+                                             lhs_input_lits, rhs_input_lits, overflow_lit=overflow_lit)
 
             probe_lhs = apply_truth_table_setting(lhs_input_lits, lhs_setting)
             probe_rhs = apply_truth_table_setting(rhs_input_lits, rhs_setting)
@@ -490,9 +505,11 @@ class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
             assumptions_pos = probe_input + probe_output
             has_correct_value = checker.solve(assumptions_pos)
             if not has_correct_value:
-                checker.solve(probe_input)
-                print("The gate forces an incorrect model:")
-                checker.print_model()
+                if checker.solve(probe_input):
+                    print("The gate forces an incorrect model:")
+                    checker.print_model()
+                else:
+                    print("The gate has no satisfiable assignment for this input configuration")
 
             assert has_correct_value,\
                 "Encoding failed for truth table entry " + str(table_entry) + "\n(should be satisfiable, but is not)" \
@@ -562,8 +579,12 @@ class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
         lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
         rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 2)]
 
-        with self.assertRaises(ValueError):
-            bvg.encode_bv_naive_unsigned_mul(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
+        encoder_under_test = self.get_bv_umul_encoder_under_test()
+        # See assertion in __init__:
+        # noinspection PyCallByClass
+        # noinspection PyTypeChecker
+        with unittest.TestCase.assertRaises(self, ValueError):
+            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
 
     def test_refuses_output_bv_with_length_mismatch(self):
         lit_factory = TestLiteralFactory()
@@ -573,9 +594,12 @@ class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
         rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
         output_lits = [lit_factory.create_literal() for _ in range(0, 2)]
 
-        with self.assertRaises(ValueError):
-            bvg.encode_bv_naive_unsigned_mul(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits,
-                                             output_lits)
+        encoder_under_test = self.get_bv_umul_encoder_under_test()
+        # See assertion in __init__:
+        # noinspection PyCallByClass
+        # noinspection PyTypeChecker
+        with unittest.TestCase.assertRaises(self, ValueError):
+            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
 
     def test_uses_returns_output_literals(self):
         lit_factory = TestLiteralFactory()
@@ -584,8 +608,9 @@ class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
         lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
         rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
         output_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        result = bvg.encode_bv_naive_unsigned_mul(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits,
-                                                  output_lits)
+
+        encoder_under_test = self.get_bv_umul_encoder_under_test()
+        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
         assert result == output_lits
 
     def test_creates_output_literals_if_none_provided(self):
@@ -595,6 +620,18 @@ class TestEncodeBvNaiveUnsignedMulGateEncoder(unittest.TestCase):
         lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
         rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
         all_inputs = lhs_input_lits + rhs_input_lits
-        result = bvg.encode_bv_naive_unsigned_mul(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
+
+        encoder_under_test = self.get_bv_umul_encoder_under_test()
+        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
         assert not any(x in all_inputs for x in result)
         assert not any(-x in all_inputs for x in result)
+
+
+class TestNaiveUnsignedBVMultiplierGate(unittest.TestCase, AbstractTestUnsignedBVMultiplierGate):
+    def get_bv_umul_encoder_under_test(self):
+        return bvg.encode_bv_naive_unsigned_mul_gate
+
+
+class TestParallelUnsignedBVMultiplierGate(unittest.TestCase, AbstractTestUnsignedBVMultiplierGate):
+    def get_bv_umul_encoder_under_test(self):
+        return bvg.encode_bv_parallel_unsigned_mul_gate

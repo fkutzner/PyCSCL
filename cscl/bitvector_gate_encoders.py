@@ -179,8 +179,8 @@ def encode_bv_ripple_carry_adder_gate(clause_consumer: ClauseConsumer, lit_facto
     return output_lits
 
 
-def encode_bv_naive_unsigned_mul(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                                 lhs_input_lits, rhs_input_lits, output_lits=None, overflow_lit=None):
+def encode_bv_naive_unsigned_mul_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                                      lhs_input_lits, rhs_input_lits, output_lits=None, overflow_lit=None):
     """
     (Naively) encodes an unsigned bitector multiplication constraint, with truncation on overflow.
 
@@ -249,5 +249,107 @@ def encode_bv_naive_unsigned_mul(clause_consumer: ClauseConsumer, lit_factory: C
 
     if overflow_lit:
         gates.encode_or_gate(clause_consumer, lit_factory, overflow_lits + [final_carry_lit], overflow_lit)
+
+    return output_lits
+
+
+def encode_bv_parallel_unsigned_mul_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                                         lhs_input_lits, rhs_input_lits, output_lits=None, overflow_lit=None):
+    """
+    Encodes an unsigned bitector multiplication constraint, using parallel addition of partial products.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
+    :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
+                           rhs_input_lits must be the same as the length of lhs_input_lits.
+    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
+                        each having a new variable, are created. Otherwise, output_lits must be a list
+                        with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :param overflow_lit: Iff overflow_lit is not None, gates are added forcing the value of overflow_lit to be true
+                         iff the product of lhs_input_lits and rhs_input_lits cannot be expressed using
+                         len(output_lits) bits.
+    :return: The list of gate output literals in LSB-to-MSB order, containing len(lhs_input_literals) literals.
+             The i'th literal of output_lits signifies the i'th bit of the product.
+    """
+
+    width = len(lhs_input_lits)
+    if len(rhs_input_lits) != width or (output_lits is not None and len(output_lits) != width):
+        raise ValueError("Mismatching bitvector sizes")
+    if width == 0:
+        return []
+
+    # Implementation:
+    #
+    # 1. Encode W=width partial products P(0), ..., P(W-1) with P(i) = rhs_input_lits * [W times lhs_input_lits[i]]
+    #    (0 <= i < W)
+    # 2. Encode partial sums S(0), ..., S(W-1) with S(0) = P(0)[0:W] and for 1 <= i < W,
+    #    S(i) = S(i-1)[1:] + P(i)[0:W-i]
+    # 3. For 0 <= i < W, S(i)[0] is the i'th output bit. If any overflow condition occurred in step 2 or any
+    #    partial sum bit not used in step 2 is set to true, the multiplication has an overflow condition.
+    #
+    # Example for W=4:
+    #
+    #                               P(0)[3] P(0)[2] P(0)[1] P(0)[0]
+    #  +                 P(1)[3]    P(1)[2] P(1)[1] P(1)[0]
+    #  +         P(2)[3] P(2)[2]    P(2)[1] P(2)[0]
+    #  + P(3)[3] P(3)[2] P(3)[1]    P(3)[0]
+    #  -----------------------------------------------------------
+    #      (can be discarded)     | out[3]  out[2]  out[1]  out[0]  = Output
+    #
+    # Partial sums for output computation:
+    #
+    # S(0)[0:W]   = P(0)[0:W]
+    # S(1)[0:W-1] = S(0)[1:W] + P(1)[0:W-1]
+    # S(2)[0:W-2] = S(1)[1:W-1] + P(2)[0:W-2]
+    # S(3)[0:W-3] = S(2)[1:W-2] + P(3)[0:W-3]
+
+    def __create_fresh_lits(n):
+        return [lit_factory.create_literal() for _ in range(0, n)]
+
+    if output_lits is None:
+        output_lits = __create_fresh_lits(width)
+    else:
+        output_lits = list(map(lambda l: lit_factory.create_literal() if l is None else l, output_lits))
+
+    # Directly include the lowermost output bit in the first partial product:
+    partial_products = [[output_lits[0]] + __create_fresh_lits(width-1)]
+    lowest_lhs = lhs_input_lits[0]
+    encode_bv_and_gate(clause_consumer, lit_factory, rhs_input_lits, [lowest_lhs] * width, partial_products[0])
+
+    # Don't compute partial sum bits which are discarded anyway:
+    if overflow_lit is not None:
+        partial_products += [encode_bv_and_gate(clause_consumer, lit_factory, rhs_input_lits, [l] * width)
+                             for l in lhs_input_lits[1:]]
+    else:
+        partial_products += [encode_bv_and_gate(clause_consumer, lit_factory,
+                                                rhs_input_lits[0:width-i], [lhs_input_lits[i]] * (width-i))
+                             for i in range(1, width)]
+
+    # Compute the partial sums, directly forcing the output literal setting. partial_sums[i] corresponds to S(i+1)
+    partial_sums = [([output_lits[i]] + __create_fresh_lits(width-i-1)) for i in range(1, width)]
+    # partial_sum_carries[i] is the carry bit for the computation of partial_sums[i]:
+    partial_sum_carries = __create_fresh_lits(width-1) if overflow_lit is not None else [None]*(width-1)
+
+    current_partial_sum = partial_products[0][1:width]
+    for i in range(1, width):
+        current_partial_product = partial_products[i][0:width-i]
+        partial_sum_accu = partial_sums[i-1]
+        assert len(current_partial_sum) == width - i
+        encode_bv_ripple_carry_adder_gate(clause_consumer, lit_factory,
+                                          lhs_input_lits=current_partial_sum,
+                                          rhs_input_lits=current_partial_product,
+                                          output_lits=partial_sum_accu,
+                                          carry_out_lit=partial_sum_carries[i-1])
+        current_partial_sum = partial_sum_accu[1:]
+
+    # Check if an overflow occurred:
+    if overflow_lit is not None:
+        overflow_indicators = partial_sum_carries[:]
+        for i in range(1, width):
+            overflow_indicators += partial_products[i][width-i:width]
+        gates.encode_or_gate(clause_consumer, lit_factory, overflow_indicators, overflow_lit)
 
     return output_lits
