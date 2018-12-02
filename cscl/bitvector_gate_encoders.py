@@ -357,8 +357,8 @@ def encode_bv_parallel_unsigned_mul_gate(clause_consumer: ClauseConsumer, lit_fa
     return output_lits
 
 
-def encode_bv_unsigned_leq(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                           lhs_input_lits, rhs_input_lits, output_lit=None):
+def encode_bv_unsigned_leq_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                                lhs_input_lits, rhs_input_lits, output_lit=None):
     """
     Encodes a less-than-or-equal-to-comparison gate for bitvectors representing unsigned integers.
 
@@ -389,7 +389,8 @@ def encode_bv_unsigned_leq(clause_consumer: ClauseConsumer, lit_factory: CNFLite
 
     # Recursion: lhs <= rhs <-> (lhs[0] < rhs[0] or (lhs[0] == rhs[0] and lhs[1:] <= rhs[1:])
     width = len(lhs_input_lits)
-    rest_leq = encode_bv_unsigned_leq(clause_consumer, lit_factory, lhs_input_lits[:width-1], rhs_input_lits[:width-1])
+    rest_leq = encode_bv_unsigned_leq_gate(clause_consumer, lit_factory,
+                                           lhs_input_lits[:width-1], rhs_input_lits[:width-1])
 
     lhs_msb, rhs_msb = lhs_input_lits[width-1], rhs_input_lits[width-1]
     msb_is_lt = gates.encode_and_gate(clause_consumer, lit_factory, [-lhs_msb, rhs_msb])
