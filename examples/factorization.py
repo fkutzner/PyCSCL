@@ -80,7 +80,7 @@ def factorize(x: int, solver: SatSolver):
                                             output_lits=x_constant,
                                             overflow_lit=pin_to_false)
 
-    solution_found = solver.solve()
+    solution_found = solver.solve([])
     if not solution_found:
         return None
     else:
