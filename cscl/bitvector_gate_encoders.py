@@ -1,6 +1,8 @@
 from cscl.interfaces import CNFLiteralFactory, ClauseConsumer
 import cscl.basic_gate_encoders as gates
 
+# TODO: support Plaisted-Greenbaum encoders
+
 
 def encode_gate_vector(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory, basic_gate_encoder_fn,
                        lhs_input_lits, rhs_input_lits, output_lits=None):
@@ -353,3 +355,45 @@ def encode_bv_parallel_unsigned_mul_gate(clause_consumer: ClauseConsumer, lit_fa
         gates.encode_or_gate(clause_consumer, lit_factory, overflow_indicators, overflow_lit)
 
     return output_lits
+
+
+def encode_bv_unsigned_leq(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                           lhs_input_lits, rhs_input_lits, output_lit=None):
+    """
+    Encodes a less-than-or-equal-to-comparison gate for bitvectors representing unsigned integers.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
+    :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
+                           rhs_input_lits must be the same as the length of lhs_input_lits.
+    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
+                       new variable will be used as the gate's output literal.
+    :return: The encoded gate's output literal.
+    """
+
+    if len(lhs_input_lits) != len(rhs_input_lits):
+        raise ValueError("Mismatch of lhs_input_lits and rhs_input_lits sizes illegally mismatching")
+
+    if output_lit is None:
+        output_lit = lit_factory.create_literal()
+
+    # Base cases:
+    if len(lhs_input_lits) == 0:
+        clause_consumer.consume_clause([output_lit])
+        return output_lit
+
+    if len(lhs_input_lits) == 1:
+        gates.encode_and_gate(clause_consumer, lit_factory, [lhs_input_lits[0], -rhs_input_lits[0]], -output_lit)
+        return output_lit
+
+    # Recursion: lhs <= rhs <-> (lhs[0] < rhs[0] or (lhs[0] == rhs[0] and lhs[1:] <= rhs[1:])
+    width = len(lhs_input_lits)
+    rest_leq = encode_bv_unsigned_leq(clause_consumer, lit_factory, lhs_input_lits[:width-1], rhs_input_lits[:width-1])
+
+    lhs_msb, rhs_msb = lhs_input_lits[width-1], rhs_input_lits[width-1]
+    msb_is_lt = gates.encode_and_gate(clause_consumer, lit_factory, [-lhs_msb, rhs_msb])
+    msb_is_eq = -gates.encode_binary_xor_gate(clause_consumer, lit_factory, [lhs_msb, rhs_msb])
+
+    leq_if_first_is_eq = gates.encode_and_gate(clause_consumer, lit_factory, [msb_is_eq, rest_leq])
+    return gates.encode_or_gate(clause_consumer, lit_factory, [msb_is_lt, leq_if_first_is_eq], output_lit)

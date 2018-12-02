@@ -1,5 +1,7 @@
 from cscl.interfaces import ClauseConsumer, CNFLiteralFactory
 
+# TODO: support Plaisted-Greenbaum encoders
+
 
 def encode_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory, input_lits, output_lit=None):
     """
