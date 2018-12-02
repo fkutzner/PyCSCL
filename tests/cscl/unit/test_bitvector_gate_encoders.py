@@ -758,9 +758,17 @@ class AbstractBinaryBitvectorPredicateTest(abc.ABC):
         assert (result not in all_inputs) and (-result not in all_inputs)
 
 
-class TestEncodeBVLessThanOrEqualGate(unittest.TestCase, AbstractBinaryBitvectorPredicateTest):
+class TestEncodeBVLessThanOrEqualCompGate(unittest.TestCase, AbstractBinaryBitvectorPredicateTest):
     def get_bv_predicate_encoder_under_test(self):
         return bvg.encode_bv_unsigned_leq
 
     def get_predicate(self):
-        return lambda l, r, width: (l & (2**width-1)) <= (r & (2**width-1))
+        return lambda l, r, width: (l & (2**width - 1)) <= (r & (2**width - 1))
+
+
+class TestEncodeBVEqualityCompGate(unittest.TestCase, AbstractBinaryBitvectorPredicateTest):
+    def get_bv_predicate_encoder_under_test(self):
+        return bvg.encode_bv_eq_gate
+
+    def get_predicate(self):
+        return lambda l, r, width: (l & (2**width - 1)) == (r & (2**width - 1))

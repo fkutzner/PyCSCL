@@ -373,7 +373,7 @@ def encode_bv_unsigned_leq(clause_consumer: ClauseConsumer, lit_factory: CNFLite
     """
 
     if len(lhs_input_lits) != len(rhs_input_lits):
-        raise ValueError("Mismatch of lhs_input_lits and rhs_input_lits sizes illegally mismatching")
+        raise ValueError("Sizes of lhs_input_lits and rhs_input_lits illegally mismatching")
 
     if output_lit is None:
         output_lit = lit_factory.create_literal()
@@ -397,3 +397,29 @@ def encode_bv_unsigned_leq(clause_consumer: ClauseConsumer, lit_factory: CNFLite
 
     leq_if_first_is_eq = gates.encode_and_gate(clause_consumer, lit_factory, [msb_is_eq, rest_leq])
     return gates.encode_or_gate(clause_consumer, lit_factory, [msb_is_lt, leq_if_first_is_eq], output_lit)
+
+
+def encode_bv_eq_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                      lhs_input_lits, rhs_input_lits, output_lit=None):
+    """
+    Encodes a equality-comparison gate for bitvectors.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
+    :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
+                           rhs_input_lits must be the same as the length of lhs_input_lits.
+    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
+                       new variable will be used as the gate's output literal.
+    :return: The encoded gate's output literal.
+    """
+
+    if len(lhs_input_lits) != len(rhs_input_lits):
+        raise ValueError("Sizes of lhs_input_lits and rhs_input_lits illegally mismatching")
+
+    if output_lit is None:
+        output_lit = lit_factory.create_literal()
+
+    differences = encode_bv_xor_gate(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
+    gates.encode_or_gate(clause_consumer, lit_factory, differences, -output_lit)
+    return output_lit
