@@ -326,6 +326,49 @@ def encode_bv_unsigned_leq_gate(clause_consumer: ClauseConsumer, lit_factory: CN
     return gates.encode_or_gate(clause_consumer, lit_factory, [msb_is_lt, leq_if_first_is_eq], output_lit)
 
 
+def encode_bv_signed_leq_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                              lhs_input_lits, rhs_input_lits, output_lit=None):
+    """
+    Encodes a less-than-or-equal-to-comparison gate for bitvectors representing signed integers
+    in two's complement encoding.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
+    :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
+                           rhs_input_lits must be the same as the length of lhs_input_lits.
+    :param output_lit: The gate's output literal. If output_lit is None, a positive literal with a
+                       new variable will be used as the gate's output literal.
+    :return: The encoded gate's output literal.
+    """
+
+    if len(lhs_input_lits) != len(rhs_input_lits):
+        raise ValueError("Sizes of lhs_input_lits and rhs_input_lits illegally mismatching")
+
+    if output_lit is None:
+        output_lit = lit_factory.create_literal()
+
+    if len(lhs_input_lits) == 0:
+        clause_consumer.consume_clause([output_lit])
+        return output_lit
+
+    if len(lhs_input_lits) == 1:
+        return gates.encode_or_gate(clause_consumer, lit_factory, [lhs_input_lits[0], -rhs_input_lits[0]], output_lit)
+
+    width = len(lhs_input_lits)
+    lhs_msb = lhs_input_lits[width-1]
+    rhs_msb = rhs_input_lits[width-1]
+    rest_leq = encode_bv_unsigned_leq_gate(clause_consumer, lit_factory,
+                                           lhs_input_lits=lhs_input_lits[:width-1],
+                                           rhs_input_lits=rhs_input_lits[:width-1])
+    msb_eq = -gates.encode_binary_xor_gate(clause_consumer, lit_factory, input_lits=[lhs_msb, rhs_msb])
+    same_sign_and_leq = gates.encode_and_gate(clause_consumer, lit_factory, input_lits=[msb_eq, rest_leq])
+    lhs_neg_and_rhs_pos = gates.encode_and_gate(clause_consumer, lit_factory, input_lits=[lhs_msb, -rhs_msb])
+    return gates.encode_or_gate(clause_consumer, lit_factory,
+                                input_lits=[lhs_neg_and_rhs_pos, same_sign_and_leq],
+                                output_lit=output_lit)
+
+
 def encode_bv_eq_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
                       lhs_input_lits, rhs_input_lits, output_lit=None):
     """
