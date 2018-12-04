@@ -73,12 +73,12 @@ def factorize(x: int, solver: SatSolver):
     # Encode a multiplier whose overflow output is required to be false in all solutions:
     pin_to_false = solver.create_literal()
     solver.consume_clause([-pin_to_false])
-    bv.encode_bv_parallel_unsigned_mul_gate(clause_consumer=solver,
-                                            lit_factory=solver,
-                                            lhs_input_lits=lhs,
-                                            rhs_input_lits=rhs,
-                                            output_lits=x_constant,
-                                            overflow_lit=pin_to_false)
+    bv.encode_bv_parallel_mul_gate(clause_consumer=solver,
+                                   lit_factory=solver,
+                                   lhs_input_lits=lhs,
+                                   rhs_input_lits=rhs,
+                                   output_lits=x_constant,
+                                   overflow_lit=pin_to_false)
 
     solution_found = solver.solve([])
     if not solution_found:

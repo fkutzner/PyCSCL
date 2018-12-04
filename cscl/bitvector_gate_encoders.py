@@ -181,10 +181,10 @@ def encode_bv_ripple_carry_adder_gate(clause_consumer: ClauseConsumer, lit_facto
     return output_lits
 
 
-def encode_bv_parallel_unsigned_mul_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                                         lhs_input_lits, rhs_input_lits, output_lits=None, overflow_lit=None):
+def encode_bv_parallel_mul_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                                lhs_input_lits, rhs_input_lits, output_lits=None, overflow_lit=None):
     """
-    Encodes an unsigned bitector multiplication constraint, using parallel addition of partial products.
+    Encodes a bitvector multiplication-gate constraint, using parallel addition of partial products.
 
     :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
     :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
