@@ -755,7 +755,7 @@ class AbstractBinaryBitvectorPredicateTest(abc.ABC):
 
 class TestEncodeBVUnsignedLessThanOrEqualCompGate(unittest.TestCase, AbstractBinaryBitvectorPredicateTest):
     def get_bv_predicate_encoder_under_test(self):
-        return bvg.encode_bv_unsigned_leq_gate
+        return bvg.encode_bv_ule_gate
 
     def get_predicate(self):
         return lambda l, r, width: (l & (2**width - 1)) <= (r & (2**width - 1))
@@ -763,7 +763,7 @@ class TestEncodeBVUnsignedLessThanOrEqualCompGate(unittest.TestCase, AbstractBin
 
 class TestEncodeBVSignedLessThanOrEqualCompGate(unittest.TestCase, AbstractBinaryBitvectorPredicateTest):
     def get_bv_predicate_encoder_under_test(self):
-        return bvg.encode_bv_signed_leq_gate
+        return bvg.encode_bv_sle_gate
 
     def get_predicate(self):
         def __sign_extend(x: int, from_width: int):

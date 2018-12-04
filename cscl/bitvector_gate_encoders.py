@@ -283,8 +283,8 @@ def encode_bv_parallel_mul_gate(clause_consumer: ClauseConsumer, lit_factory: CN
     return output_lits
 
 
-def encode_bv_unsigned_leq_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                                lhs_input_lits, rhs_input_lits, output_lit=None):
+def encode_bv_ule_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                       lhs_input_lits, rhs_input_lits, output_lit=None):
     """
     Encodes a less-than-or-equal-to-comparison gate for bitvectors representing unsigned integers.
 
@@ -315,8 +315,8 @@ def encode_bv_unsigned_leq_gate(clause_consumer: ClauseConsumer, lit_factory: CN
 
     # Recursion: lhs <= rhs <-> (lhs[0] < rhs[0] or (lhs[0] == rhs[0] and lhs[1:] <= rhs[1:])
     width = len(lhs_input_lits)
-    rest_leq = encode_bv_unsigned_leq_gate(clause_consumer, lit_factory,
-                                           lhs_input_lits[:width-1], rhs_input_lits[:width-1])
+    rest_leq = encode_bv_ule_gate(clause_consumer, lit_factory,
+                                  lhs_input_lits[:width-1], rhs_input_lits[:width-1])
 
     lhs_msb, rhs_msb = lhs_input_lits[width-1], rhs_input_lits[width-1]
     msb_is_lt = gates.encode_and_gate(clause_consumer, lit_factory, [-lhs_msb, rhs_msb])
@@ -326,8 +326,8 @@ def encode_bv_unsigned_leq_gate(clause_consumer: ClauseConsumer, lit_factory: CN
     return gates.encode_or_gate(clause_consumer, lit_factory, [msb_is_lt, leq_if_first_is_eq], output_lit)
 
 
-def encode_bv_signed_leq_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                              lhs_input_lits, rhs_input_lits, output_lit=None):
+def encode_bv_sle_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                       lhs_input_lits, rhs_input_lits, output_lit=None):
     """
     Encodes a less-than-or-equal-to-comparison gate for bitvectors representing signed integers
     in two's complement encoding.
@@ -358,9 +358,9 @@ def encode_bv_signed_leq_gate(clause_consumer: ClauseConsumer, lit_factory: CNFL
     width = len(lhs_input_lits)
     lhs_msb = lhs_input_lits[width-1]
     rhs_msb = rhs_input_lits[width-1]
-    rest_leq = encode_bv_unsigned_leq_gate(clause_consumer, lit_factory,
-                                           lhs_input_lits=lhs_input_lits[:width-1],
-                                           rhs_input_lits=rhs_input_lits[:width-1])
+    rest_leq = encode_bv_ule_gate(clause_consumer, lit_factory,
+                                  lhs_input_lits=lhs_input_lits[:width-1],
+                                  rhs_input_lits=rhs_input_lits[:width-1])
     msb_eq = -gates.encode_binary_xor_gate(clause_consumer, lit_factory, input_lits=[lhs_msb, rhs_msb])
     same_sign_and_leq = gates.encode_and_gate(clause_consumer, lit_factory, input_lits=[msb_eq, rest_leq])
     lhs_neg_and_rhs_pos = gates.encode_and_gate(clause_consumer, lit_factory, input_lits=[lhs_msb, -rhs_msb])
