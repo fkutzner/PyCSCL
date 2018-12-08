@@ -166,3 +166,72 @@ class SyntacticFunctionScope:
         :return: None
         """
         self.__parent = new_parent
+
+
+def parse_smtlib2_flat_term(parsed_sexp, sort_ctx: sorts.SortContext,
+                            fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
+    """
+    Parses an STMLib2-formatted term that is not a list, i.e. is a literal or a constant symbol.
+
+    :param parsed_sexp: The term's s-expression.
+    :param sort_ctx: The current sort context.
+    :param fun_scope: The current function scope.
+    :return: A LiteralASTNode if parsed_sexp represents a literal, or a FunctionApplicationASTNode if parsed_sexp
+             represents a constant symbol. The returned AST node represents parsed_sexp.
+    :raises ValueError if parsed_sexp is a malformed term.
+    """
+    lit = parse_smtlib2_literal(parsed_sexp, sort_ctx)
+    if lit is not None:
+        return lit
+    else:
+        constant_sig = fun_scope.get_signature(parsed_sexp)
+        if constant_sig is None or constant_sig.get_arity() != 0:
+            raise ValueError("Malformed constant")
+        else:
+            return ast.FunctionApplicationASTNode(parsed_sexp, tuple(), constant_sig.get_range_sort(tuple()))
+
+
+def parse_smtlib2_complex_term(parsed_sexp, sort_ctx: sorts.SortContext,
+                               fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
+    """
+    Parses an STMLib2-formatted term that is given as a list.
+
+    :param parsed_sexp: The term's s-expression.
+    :param sort_ctx: The current sort context.
+    :param fun_scope: The current function scope.
+    :return: A FunctionApplicationASTNode representing parsed_sexp.
+    :raises ValueError if parsed_sexp is a malformed term.
+    """
+    if len(parsed_sexp) == 0:
+        raise ValueError("Empty term")
+
+    fname = parsed_sexp[0]
+    fsig = fun_scope.get_signature(fname)
+
+    if fsig is None:
+        raise ValueError("Undeclared function " + fname)
+    if fsig.get_arity() != len(parsed_sexp)-1:
+        raise ValueError("Illegal number of arguments for function " + fname)
+
+    args = [parse_smtlib2_term(x, sort_ctx, fun_scope) for x in parsed_sexp[1:]]
+
+    term_sort = fsig.get_range_sort((x.get_sort() for x in args))
+    if term_sort is None:
+        raise ValueError("Illegally typed arguments for function " + fname)
+
+    return ast.FunctionApplicationASTNode(fname, args, term_sort)
+
+
+def parse_smtlib2_term(parsed_sexp, sort_ctx: sorts.SortContext, fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
+    """
+    Parses an STMLib2-formatted term.
+
+    :param parsed_sexp: The term's s-expression.
+    :param sort_ctx: The current sort context.
+    :param fun_scope: The current function scope.
+    :return: A TermASTNode representing parsed_sexp.
+    :raises ValueError if parsed_sexp is a malformed term.
+    """
+    if type(parsed_sexp) is not list:
+        return parse_smtlib2_flat_term(parsed_sexp, sort_ctx, fun_scope)
+    return parse_smtlib2_complex_term(parsed_sexp, sort_ctx, fun_scope)
