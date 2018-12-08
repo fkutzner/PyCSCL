@@ -169,6 +169,13 @@ class SyntacticFunctionScope:
         """
         self.__parent = new_parent
 
+    def get_parent(self):
+        """
+        Gets the scope's parent scope.
+
+        :return: The current scope's parent scope.
+        """
+
 
 def parse_smtlib2_flat_term(parsed_sexp, sort_ctx: sorts.SortContext,
                             fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
@@ -319,8 +326,12 @@ def parse_smtlib2_problem(parsed_sexp):
     """
     problem_toplevel_function_scope = SyntacticFunctionScope(None)
     sort_context = sorts.SortContext()
+    push_level = 0
 
     def parse_command(sexp):
+        nonlocal problem_toplevel_function_scope  # Needs to be changed by push and pop commands
+        nonlocal push_level  # Needs to be changed by push and pop commands
+
         if len(sexp) == 0:
             raise ValueError("Missing command")
         command = sexp[0]
@@ -346,6 +357,34 @@ def parse_smtlib2_problem(parsed_sexp):
                 raise ValueError("Invalid set-logic command")
             # TODO: parse the logic and extend the current function scope with the theory
             return ast.SetLogicCommandASTNode(sexp[1])
+
+        elif command == "push":
+            if len(sexp) > 2:
+                raise ValueError("Invalid push command")
+            amnt = 1 if len(sexp) == 1 else int(sexp[1])
+            if amnt < 0:
+                raise ValueError("Invalid negative argument for push command")
+
+            for i in range(0, amnt):
+                new_scope = SyntacticFunctionScope(problem_toplevel_function_scope)
+                problem_toplevel_function_scope = new_scope
+
+            push_level += amnt
+
+        elif command == "pop":
+            if len(sexp) > 2:
+                raise ValueError("Invalid pop command")
+            amnt = 1 if len(sexp) == 1 else int(sexp[1])
+            if amnt < 0:
+                raise ValueError("Invalid negative argument for pop command")
+
+            if push_level - amnt < 0:
+                raise ValueError("Invalid pop command: no corresponding push command")
+
+            for i in range(0, amnt):
+                problem_toplevel_function_scope = problem_toplevel_function_scope.get_parent()
+
+            push_level -= amnt
 
         elif command == "set-info":
             pass  # Ignore set-info commands

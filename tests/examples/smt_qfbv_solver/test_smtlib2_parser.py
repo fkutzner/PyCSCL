@@ -361,3 +361,5 @@ AssertCommandASTNode
     FunctionApplicationASTNode Function: x Sort: Bool
 """
         assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    # TODO: test push/pop functionality, bitvector-theory functions
