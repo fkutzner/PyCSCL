@@ -325,3 +325,39 @@ class TestParseSmtlib2Problem(unittest.TestCase):
                         " RangeSort: (_ BitVec 32)"
         actual_tree = result[0].tree_to_string()
         assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_declare_const_cmd_with_int_sort(self):
+        result = smt.parse_smtlib2_problem([["declare-const", "fooconst", "Int"]])
+        assert type(result) == list
+        assert len(result) == 1
+        expected_tree = "DeclareFunCommandASTNode FunctionName: fooconst DomainSorts: [] RangeSort: Int"
+        actual_tree = result[0].tree_to_string()
+        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_declare_const_cmd_with_bv_sort(self):
+        result = smt.parse_smtlib2_problem([["declare-const", "fooconst", ["_", "BitVec", "32"]]])
+        assert type(result) == list
+        assert len(result) == 1
+        expected_tree = "DeclareFunCommandASTNode FunctionName: fooconst DomainSorts: [] RangeSort: (_ BitVec 32)"
+        actual_tree = result[0].tree_to_string()
+        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_assert(self):
+        result = smt.parse_smtlib2_problem([["declare-const", "x", "Bool"],
+                                            ["declare-fun", "=", ["Bool", "Bool"], "Bool"],
+                                            ["assert", ["=", "x", "x"]]])
+        assert type(result) == list
+        assert len(result) == 3
+
+        actual_tree = ""
+        for x in result:
+            assert isinstance(x, ast.ASTNode)
+            actual_tree += x.tree_to_string() + "\n"
+        expected_tree = """DeclareFunCommandASTNode FunctionName: x DomainSorts: [] RangeSort: Bool
+DeclareFunCommandASTNode FunctionName: = DomainSorts: ['Bool', 'Bool'] RangeSort: Bool
+AssertCommandASTNode
+  FunctionApplicationASTNode Function: = Sort: Bool
+    FunctionApplicationASTNode Function: x Sort: Bool
+    FunctionApplicationASTNode Function: x Sort: Bool
+"""
+        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree

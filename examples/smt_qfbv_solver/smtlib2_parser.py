@@ -293,8 +293,8 @@ def parse_cmd_declare_const(parsed_sexp, sort_ctx: sorts.SortContext):
              function's signature.
     :raises ValueError if parsed_sexp is a malformed term.
     """
-    if len(parsed_sexp) != 3 or type(parsed_sexp[1]) != str or type(parsed_sexp[2]) != list:
-        raise ValueError("Invalid declare-fun command")
+    if len(parsed_sexp) != 3 or type(parsed_sexp[1]) != str:
+        raise ValueError("Invalid declare-const command")
     fun_name, range_sort_sexp = parsed_sexp[1:]
     range_sort = parse_smtlib2_sort(range_sort_sexp, sort_ctx=sort_ctx)
 
@@ -326,7 +326,7 @@ def parse_smtlib2_problem(parsed_sexp):
         command = sexp[0]
 
         if command == "assert":
-            return parse_cmd_assert(parsed_sexp, sort_context, problem_toplevel_function_scope)
+            return parse_cmd_assert(sexp, sort_context, problem_toplevel_function_scope)
 
         elif command == "check-sat":
             return ast.CheckSATCommandASTNode()
