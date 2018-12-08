@@ -46,6 +46,8 @@ def parse_smtlib2_sort(parsed_sexp, sort_ctx: sorts.SortContext):
     """
     if parsed_sexp == "Int":
         return sort_ctx.get_int_sort()
+    elif parsed_sexp == "Bool":
+        return sort_ctx.get_bool_sort()
     elif len(parsed_sexp) == 3 and parsed_sexp[0:2] == ["_", "BitVec"]:
         length_str = parsed_sexp[2]
         if not length_str.isnumeric() or '.' in length_str:

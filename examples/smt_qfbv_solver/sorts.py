@@ -42,6 +42,7 @@ class SortContext:
     def __init__(self):
         self.__int_sort = IntegerSort()
         self.__bv_sorts = dict()
+        self.__bool_sort = BooleanSort()
 
     def get_int_sort(self):
         """
@@ -62,3 +63,11 @@ class SortContext:
         new_sort = BitvectorSort(length)
         self.__bv_sorts[length] = new_sort
         return new_sort
+
+    def get_bool_sort(self):
+        """
+        Returns the Boolean sort.
+
+        :return: the Boolean sort.
+        """
+        return self.__bool_sort

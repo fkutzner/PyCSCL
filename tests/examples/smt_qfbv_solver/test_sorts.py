@@ -31,3 +31,14 @@ class TestSortContext(unittest.TestCase):
         bv_sort_a = under_test.get_bv_sort(3)
         bv_sort_b = under_test.get_bv_sort(3)
         assert bv_sort_a is bv_sort_b
+
+    def test_has_bool_sort(self):
+        under_test = sorts.SortContext()
+        bool_sort = under_test.get_bool_sort()
+        assert isinstance(bool_sort, sorts.BooleanSort)
+
+    def test_is_bool_sort_unique(self):
+        under_test = sorts.SortContext()
+        bool_sort_a = under_test.get_bool_sort()
+        bool_sort_b = under_test.get_bool_sort()
+        assert bool_sort_a is bool_sort_b
