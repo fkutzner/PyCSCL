@@ -279,3 +279,49 @@ class TestParseSmtlib2Term(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term("foonction", sort_ctx, fun_scope)
+
+
+class TestParseSmtlib2Problem(unittest.TestCase):
+    def test_empty_problem(self):
+        result = smt.parse_smtlib2_problem([])
+        assert result == []
+
+    def test_set_logic_cmd_qfbv(self):
+        result = smt.parse_smtlib2_problem([["set-logic", "QF_BV"]])
+        assert type(result) == list
+        assert len(result) == 1
+        expected_tree = "SetLogicCommandASTNode Logic: QF_BV"
+        actual_tree = result[0].tree_to_string()
+        assert actual_tree == expected_tree,  "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_set_logic_cmd_fails_for_bad_arity(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["set-logic", "QF_BV", "foo"]])
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["set-logic"]])
+
+    def test_declare_fun_cmd_without_args_and_int_range(self):
+        result = smt.parse_smtlib2_problem([["declare-fun", "foonction", [], "Int"]])
+        assert type(result) == list
+        assert len(result) == 1
+        expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: [] RangeSort: Int"
+        actual_tree = result[0].tree_to_string()
+        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_declare_fun_cmd_without_args_and_bv_range(self):
+        result = smt.parse_smtlib2_problem([["declare-fun", "foonction", [], ["_", "BitVec", "32"]]])
+        assert type(result) == list
+        assert len(result) == 1
+        expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: [] RangeSort: (_ BitVec 32)"
+        actual_tree = result[0].tree_to_string()
+        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_declare_fun_cmd_with_args_and_bv_range(self):
+        result = smt.parse_smtlib2_problem([["declare-fun", "foonction", ["Int", ["_", "BitVec", "32"]],
+                                             ["_", "BitVec", "32"]]])
+        assert type(result) == list
+        assert len(result) == 1
+        expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: ['Int', '(_ BitVec 32)']" + \
+                        " RangeSort: (_ BitVec 32)"
+        actual_tree = result[0].tree_to_string()
+        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree

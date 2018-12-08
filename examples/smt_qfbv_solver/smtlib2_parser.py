@@ -224,7 +224,7 @@ def parse_smtlib2_complex_term(parsed_sexp, sort_ctx: sorts.SortContext,
 
 def parse_smtlib2_term(parsed_sexp, sort_ctx: sorts.SortContext, fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
     """
-    Parses an STMLib2-formatted term.
+    Parses an SMTLib2-formatted term.
 
     :param parsed_sexp: The term's s-expression.
     :param sort_ctx: The current sort context.
@@ -235,3 +235,120 @@ def parse_smtlib2_term(parsed_sexp, sort_ctx: sorts.SortContext, fun_scope: Synt
     if type(parsed_sexp) is not list:
         return parse_smtlib2_flat_term(parsed_sexp, sort_ctx, fun_scope)
     return parse_smtlib2_complex_term(parsed_sexp, sort_ctx, fun_scope)
+
+
+def parse_cmd_assert(parsed_sexp, sort_ctx: sorts.SortContext, scope: SyntacticFunctionScope):
+    """
+    Parses an SMTLib2-formatted assert command.
+
+    :param parsed_sexp: The assert command's s-expression.
+    :param sort_ctx: The current sort context.
+    :param scope: The current scope.
+    :return: An AssertCommandASTNode representing parsed_sexp.
+    :raises ValueError if parsed_sexp is a malformed term.
+    """
+    if len(parsed_sexp) != 2:
+        raise ValueError("The assert command requires exactly one argument")
+    term = parse_smtlib2_term(parsed_sexp[1], sort_ctx, scope)
+    if not isinstance(term.get_sort(), sorts.BooleanSort):
+        raise ValueError("The argument of assert commands must be of the Boolean sort")
+    return ast.AssertCommandASTNode(term)
+
+
+def parse_cmd_declare_fun(parsed_sexp, sort_ctx: sorts.SortContext):
+    """
+    Parses an SMTLib2-formatted declare-fun command.
+
+    :param parsed_sexp: The command's s-expression.
+    :param sort_ctx: The current sort context.
+    :return: A tuple x,y with x being a DeclareFunCommandASTNode representing parsed_sexp and y being the declared
+             function's signature.
+    :raises ValueError if parsed_sexp is a malformed term.
+    """
+    if len(parsed_sexp) != 4 or type(parsed_sexp[1]) != str or type(parsed_sexp[2]) != list:
+        raise ValueError("Invalid declare-fun command")
+    fun_name, domain_sorts_sexp, range_sort_sexp = parsed_sexp[1:]
+    domain_sorts = [parse_smtlib2_sort(x, sort_ctx=sort_ctx) for x in domain_sorts_sexp]
+    range_sort = parse_smtlib2_sort(range_sort_sexp, sort_ctx=sort_ctx)
+
+    def __signature_fn(concrete_dom_sigs):
+        if list(concrete_dom_sigs) == domain_sorts:
+            return range_sort
+        return None
+
+    return ast.DeclareFunCommandASTNode(fun_name, domain_sorts, range_sort), FunctionSignature(__signature_fn,
+                                                                                               len(domain_sorts),
+                                                                                               True)
+
+
+def parse_cmd_declare_const(parsed_sexp, sort_ctx: sorts.SortContext):
+    """
+    Parses an SMTLib2-formatted declare-const command.
+
+    :param parsed_sexp: The command's s-expression.
+    :param sort_ctx: The current sort context.
+    :return: A tuple x,y with x being a DeclareFunCommandASTNode representing parsed_sexp and y being the declared
+             function's signature.
+    :raises ValueError if parsed_sexp is a malformed term.
+    """
+    if len(parsed_sexp) != 3 or type(parsed_sexp[1]) != str or type(parsed_sexp[2]) != list:
+        raise ValueError("Invalid declare-fun command")
+    fun_name, range_sort_sexp = parsed_sexp[1:]
+    range_sort = parse_smtlib2_sort(range_sort_sexp, sort_ctx=sort_ctx)
+
+    def __signature_fn(concrete_dom_sigs):
+        if len(concrete_dom_sigs) == 0:
+            return range_sort
+        return None
+
+    return ast.DeclareFunCommandASTNode(fun_name, [], range_sort), FunctionSignature(__signature_fn,
+                                                                                     0, True)
+
+
+def parse_smtlib2_problem(parsed_sexp):
+    """
+    Parses an SMTLib2-formatted SMT problem.
+
+    This parser currently only supports a subset of SMTLib2. TODO: document the supported SMTLib2 subset.
+
+    :param parsed_sexp: The command's s-expression.
+    :return: A list of ASTNodes, representing parsed_sexp.
+    :raises ValueError if parsed_sexp is a malformed problem.
+    """
+    problem_toplevel_function_scope = SyntacticFunctionScope(None)
+    sort_context = sorts.SortContext()
+
+    def parse_command(sexp):
+        if len(sexp) == 0:
+            raise ValueError("Missing command")
+        command = sexp[0]
+
+        if command == "assert":
+            return parse_cmd_assert(parsed_sexp, sort_context, problem_toplevel_function_scope)
+
+        elif command == "check-sat":
+            return ast.CheckSATCommandASTNode()
+
+        elif command == "declare-fun":
+            ast_node, fun_signature = parse_cmd_declare_fun(sexp, sort_context)
+            problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
+            return ast_node
+
+        elif command == "declare-const":
+            ast_node, fun_signature = parse_cmd_declare_const(sexp, sort_context)
+            problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
+            return ast_node
+
+        elif command == "set-logic":
+            if len(sexp) != 2 or not type(sexp[1]) == str:
+                raise ValueError("Invalid set-logic command")
+            # TODO: parse the logic and extend the current function scope with the theory
+            return ast.SetLogicCommandASTNode(sexp[1])
+
+        elif command == "set-info":
+            pass  # Ignore set-info commands
+
+        else:
+            raise ValueError("Unsupported command " + command)
+
+    return [parse_command(x) for x in parsed_sexp]
