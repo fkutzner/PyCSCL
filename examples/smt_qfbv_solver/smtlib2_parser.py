@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 import re
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.ast as ast
@@ -137,7 +137,7 @@ class SyntacticFunctionScope:
         self.__parent = parent_scope
         self.__signatures = dict()
 
-    def get_signature(self, func_name: str) -> Union[FunctionSignature, type(None)]:
+    def get_signature(self, func_name: str) -> Union[Tuple[FunctionSignature, str], type(None)]:
         """
         Gets the function signature for a function.
 
@@ -145,7 +145,8 @@ class SyntacticFunctionScope:
         a parent scope, the parent scope is queried for a function signature for func_name.
 
         :param func_name: The function's name.
-        :return: The function's signature. If the scope has no function with name func_name, None is returned instead.
+        :return: If the scope has no function with name func_name, None is returned. Otherwise, a tuple (f,n) is
+                 returned with f being the function's signature and n being the function's name.
         """
         if func_name in self.__signatures.keys():
             return self.__signatures[func_name]
@@ -166,7 +167,7 @@ class SyntacticFunctionScope:
         """
         if self.has_unshadowable_signature(func_name):
             raise ValueError("Function " + func_name + " cannot be redefined or shadowed")
-        self.__signatures[func_name] = signature
+        self.__signatures[func_name] = (signature, func_name)
 
     def has_unshadowable_signature(self, func_name):
         """
@@ -179,7 +180,7 @@ class SyntacticFunctionScope:
         if func_signature is None:
             return False
         else:
-            return not func_signature.is_shadowable()
+            return not func_signature[0].is_shadowable()
 
     def set_parent(self, new_parent):
         """
@@ -215,10 +216,11 @@ def parse_smtlib2_flat_term(parsed_sexp, sort_ctx: sorts.SortContext,
         return lit
     else:
         constant_sig = fun_scope.get_signature(parsed_sexp)
-        if constant_sig is None or constant_sig.get_arity() != 0:
+        if constant_sig is None or constant_sig[0].get_arity() != 0:
             raise ValueError("Malformed constant")
         else:
-            return ast.FunctionApplicationASTNode(parsed_sexp, tuple(), constant_sig.get_range_sort(tuple()))
+            func_sig, func_name = constant_sig
+            return ast.FunctionApplicationASTNode(func_name, tuple(), func_sig.get_range_sort(tuple()))
 
 
 def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext,
@@ -236,20 +238,22 @@ def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext
         raise ValueError("Empty term")
 
     fname = parsed_sexp[0]
-    fsig = fun_scope.get_signature(fname)
+    fsig_lookup_result = fun_scope.get_signature(fname)
 
-    if fsig is None:
+    if fsig_lookup_result is None:
         raise ValueError("Undeclared function " + fname)
-    if fsig.get_arity() != len(parsed_sexp)-1:
+
+    func_sig, func_name = fsig_lookup_result
+    if func_sig.get_arity() != len(parsed_sexp)-1:
         raise ValueError("Illegal number of arguments for function " + fname)
 
     args = [parse_smtlib2_term(x, sort_ctx, fun_scope) for x in parsed_sexp[1:]]
 
-    term_sort = fsig.get_range_sort((x.get_sort() for x in args))
+    term_sort = func_sig.get_range_sort((x.get_sort() for x in args))
     if term_sort is None:
         raise ValueError("Illegally typed arguments for function " + fname)
 
-    return ast.FunctionApplicationASTNode(fname, args, term_sort)
+    return ast.FunctionApplicationASTNode(func_name, args, term_sort)
 
 
 def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,

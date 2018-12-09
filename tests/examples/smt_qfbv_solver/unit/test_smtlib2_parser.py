@@ -130,7 +130,12 @@ class TestSyntacticFunctionScope(unittest.TestCase):
                                     1, True)
         under_test = smt.SyntacticFunctionScope(None)
         under_test.add_signature("foo", sig)
-        assert(under_test.get_signature("foo") is sig)
+
+        lookup_result = under_test.get_signature("foo")
+        assert lookup_result is not None
+        result_sig, result_name = lookup_result
+        assert result_sig is sig
+        assert result_name == "foo"
 
     def test_queries_parent_scope(self):
         sort_ctx = sorts.SortContext()
@@ -139,7 +144,12 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         parent = smt.SyntacticFunctionScope(None)
         under_test = smt.SyntacticFunctionScope(parent)
         parent.add_signature("foo", sig)
-        assert(under_test.get_signature("foo") is sig)
+
+        lookup_result = under_test.get_signature("foo")
+        assert lookup_result is not None
+        result_sig, result_name = lookup_result
+        assert result_sig is sig
+        assert result_name == "foo"
 
     def test_set_parent_scope(self):
         sort_ctx = sorts.SortContext()
@@ -149,7 +159,12 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         under_test = smt.SyntacticFunctionScope(None)
         under_test.set_parent(parent)
         parent.add_signature("foo", sig)
-        assert(under_test.get_signature("foo") is sig)
+
+        lookup_result = under_test.get_signature("foo")
+        assert lookup_result is not None
+        result_sig, result_name = lookup_result
+        assert result_sig is sig
+        assert result_name == "foo"
 
     def test_refuses_to_add_when_unshadowable(self):
         sort_ctx = sorts.SortContext()
