@@ -89,6 +89,40 @@ class TestParseSmtlib2Sort(unittest.TestCase):
             smt.parse_smtlib2_sort(["_", "Foo"], sort_ctx)
 
 
+class TestParseSmtlib2Symbol(unittest.TestCase):
+
+    def test_empty_string_is_not_symbol(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_symbol("")
+
+    def test_string_with_whitespace_is_not_symbol(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_symbol("Foo Bar")
+
+    def test_string_with_leading_digit_is_not_symbol(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_symbol("3x")
+
+    def test_string_with_non_ascii_letter_is_not_symbol(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_symbol("🤖")
+
+    def test_reserved_word_is_not_symbol(self):
+        for x in ("let", "par", "_", "!", "as", "forall", "exists", "NUMERAL", "DECIMAL", "STRING",
+                  "set-logic", "assert", "declare-fun", "declare-const", "define-fun", "define-const",
+                  "check-sat", "push", "pop", "get-model", "get-unsat-core", "set-info", "get-info",
+                  "declare-sort", "define-sort", "get-assertions", "get-proof", "get-value", "get-assignment",
+                  "get-option", "set-option", "exit"):
+            with self.assertRaises(ValueError):
+                smt.parse_smtlib2_symbol(x)
+
+    def test_alnum_string_is_symbol(self):
+        assert smt.parse_smtlib2_symbol("abc01d") == "abc01d"
+
+    def test_string_with_nonalnum_chards_is_symbol(self):
+        assert smt.parse_smtlib2_symbol("a/b@_c%^") == "a/b@_c%^"
+
+
 class TestSyntacticFunctionScope(unittest.TestCase):
     def test_has_added_signature(self):
         sort_ctx = sorts.SortContext()

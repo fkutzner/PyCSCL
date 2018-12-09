@@ -1,4 +1,5 @@
 from typing import Union
+import re
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.ast as ast
 
@@ -54,6 +55,26 @@ def parse_smtlib2_sort(parsed_sexp, sort_ctx: sorts.SortContext):
             raise ValueError("Illegal BitVec type length in " + str(parsed_sexp))
         return sort_ctx.get_bv_sort(int(length_str))
     raise ValueError("Unsupported sort " + str(parsed_sexp))
+
+
+simple_symbol_regex = re.compile("[a-zA-Z~!@$%^&*+=<>.?/-][0-9a-zA-Z~!@$%^&*+=<>.?/-]*")
+reserved_words = ("let", "par", "_", "!", "as", "forall", "exists", "NUMERAL", "DECIMAL", "STRING",
+                  "set-logic", "assert", "declare-fun", "declare-const", "define-fun", "define-const",
+                  "check-sat", "push", "pop", "get-model", "get-unsat-core", "set-info", "get-info",
+                  "declare-sort", "define-sort", "get-assertions", "get-proof", "get-value", "get-assignment",
+                  "get-option", "set-option", "exit")
+
+
+def parse_smtlib2_symbol(symbol: str) -> str:
+    if len(symbol) >= 2 and symbol[0] == '|' and symbol[len(symbol)-1] == '|':
+        raise ValueError("Error parsing symbol " + symbol + ": quoted symbols not supported yet")
+    else:
+        if ' ' not in symbol\
+                and symbol not in reserved_words\
+                and simple_symbol_regex.match(symbol):
+            return symbol
+        else:
+            raise ValueError("Illegal symbol " + symbol)
 
 
 class FunctionSignature:
@@ -249,12 +270,13 @@ def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
 
     let_defs = []
     for (x, y) in parsed_sexp[1]:
+        name = parse_smtlib2_symbol(x)
         defining_term = parse_smtlib2_term(y, sort_ctx, fun_scope)
         const_sort = defining_term.get_sort()
         const_sig = (lambda const_sort_: FunctionSignature(lambda z: const_sort_ if len(z) == 0 else None,
                                                            0, True))(const_sort)
-        fun_scope_extension.add_signature(x, const_sig)
-        let_defs.append((x, defining_term))
+        fun_scope_extension.add_signature(name, const_sig)
+        let_defs.append((name, defining_term))
 
     enclosed_term = parse_smtlib2_term(parsed_sexp[2], sort_ctx, fun_scope_extension)
     return ast.LetTermASTNode(let_defs, enclosed_term)
