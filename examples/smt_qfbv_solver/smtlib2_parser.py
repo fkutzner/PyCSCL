@@ -200,10 +200,10 @@ def parse_smtlib2_flat_term(parsed_sexp, sort_ctx: sorts.SortContext,
             return ast.FunctionApplicationASTNode(parsed_sexp, tuple(), constant_sig.get_range_sort(tuple()))
 
 
-def parse_smtlib2_complex_term(parsed_sexp, sort_ctx: sorts.SortContext,
-                               fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
+def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext,
+                                        fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
     """
-    Parses an STMLib2-formatted term that is given as a list.
+    Parses an STMLib2-formatted term that is given as a list and is not a let term.
 
     :param parsed_sexp: The term's s-expression.
     :param sort_ctx: The current sort context.
@@ -231,6 +231,35 @@ def parse_smtlib2_complex_term(parsed_sexp, sort_ctx: sorts.SortContext,
     return ast.FunctionApplicationASTNode(fname, args, term_sort)
 
 
+def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
+                           fun_scope: SyntacticFunctionScope) -> ast.LetTermASTNode:
+    """
+    Parses an SMTLib2-formatted let term.
+
+    :param parsed_sexp: The term's s-expression.
+    :param sort_ctx: The current sort context.
+    :param fun_scope: The current function scope.
+    :return: A LetTermASTNode representing parsed_sexp.
+    :raises ValueError if parsed_sexp is a malformed term.
+    """
+    if len(parsed_sexp) != 3 or type(parsed_sexp[1]) is not list:
+        raise ValueError("Malformed let term")
+
+    fun_scope_extension = SyntacticFunctionScope(fun_scope)
+
+    let_defs = []
+    for (x, y) in parsed_sexp[1]:
+        defining_term = parse_smtlib2_term(y, sort_ctx, fun_scope)
+        const_sort = defining_term.get_sort()
+        const_sig = (lambda const_sort_: FunctionSignature(lambda z: const_sort_ if len(z) == 0 else None,
+                                                           0, True))(const_sort)
+        fun_scope_extension.add_signature(x, const_sig)
+        let_defs.append((x, defining_term))
+
+    enclosed_term = parse_smtlib2_term(parsed_sexp[2], sort_ctx, fun_scope_extension)
+    return ast.LetTermASTNode(let_defs, enclosed_term)
+
+
 def parse_smtlib2_term(parsed_sexp, sort_ctx: sorts.SortContext, fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
     """
     Parses an SMTLib2-formatted term.
@@ -243,7 +272,9 @@ def parse_smtlib2_term(parsed_sexp, sort_ctx: sorts.SortContext, fun_scope: Synt
     """
     if type(parsed_sexp) is not list:
         return parse_smtlib2_flat_term(parsed_sexp, sort_ctx, fun_scope)
-    return parse_smtlib2_complex_term(parsed_sexp, sort_ctx, fun_scope)
+    if parsed_sexp[0] == "let":
+        return parse_smtlib2_let_term(parsed_sexp, sort_ctx, fun_scope)
+    return parse_smtlib2_func_application_term(parsed_sexp, sort_ctx, fun_scope)
 
 
 def parse_cmd_assert(parsed_sexp, sort_ctx: sorts.SortContext, scope: SyntacticFunctionScope):

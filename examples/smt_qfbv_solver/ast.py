@@ -237,3 +237,45 @@ class FunctionApplicationASTNode(TermASTNode):
 
     def __str__(self):
         return self.__class__.__name__ + " Function: " + self.__fname + " Sort: " + str(self.__sort)
+
+
+class LetTermASTNode(TermASTNode):
+    """AST node class for let terms"""
+
+    def __init__(self, pairs_of_symbols_and_defining_terms, enclosed_term: TermASTNode):
+        """
+        Initializes the LetTermASTNode object.
+
+        :param pairs_of_symbols_and_defining_terms: a sequence of pairs (x,y) with x being a constant name and y being
+                                                    the term defining the constant named by x.
+        :param enclosed_term: the term defining the value of the let statement.
+        """
+
+        self.__pairs_of_symbols_and_defining_terms = pairs_of_symbols_and_defining_terms
+        self.__enclosed_term = enclosed_term
+
+    def get_child_nodes(self):
+        return [x[1] for x in self.__pairs_of_symbols_and_defining_terms] + [self.__enclosed_term]
+
+    def get_sort(self):
+        return self.__enclosed_term.get_sort()
+
+    def get_enclosed_term(self):
+        """
+        Returns the term defining the value of the let statement.
+
+        :return: the term defining the value of the let statement.
+        """
+        return self.__enclosed_term
+
+    def get_let_symbols_and_defining_terms(self):
+        """
+        Returns a sequence of pairs (x,y) with x being a constant name and y being the
+        term defining the constant named by x.
+
+        :return: a sequence of pairs (x,y) as described above.
+        """
+        return self.__pairs_of_symbols_and_defining_terms
+
+    def __str__(self):
+        return self.__class__.__name__ + " Symbols: " + str([x[0] for x in self.__pairs_of_symbols_and_defining_terms])

@@ -280,6 +280,86 @@ class TestParseSmtlib2Term(unittest.TestCase):
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term("foonction", sort_ctx, fun_scope)
 
+    def test_parse_let_term_with_no_defs(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+
+        foonction_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3)],
+                                                              range_sort=sort_ctx.get_int_sort())
+        fun_scope.add_signature("foonction", smt.FunctionSignature(foonction_signature_fn, 1, True))
+
+        result = smt.parse_smtlib2_term(["let", [], ["foonction", "#b111"]], sort_ctx, fun_scope)
+        expected_tree = """
+            LetTermASTNode Symbols: []
+              FunctionApplicationASTNode Function: foonction Sort: Int
+                LiteralASTNode Literal: 7 Sort: (_ BitVec 3)"""
+        actual_tree = "\n" + result.tree_to_string(12)
+        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_parse_let_term_with_single_def(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+
+        foonction_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3)],
+                                                              range_sort=sort_ctx.get_int_sort())
+        fun_scope.add_signature("foonction", smt.FunctionSignature(foonction_signature_fn, 1, True))
+
+        result = smt.parse_smtlib2_term(["let",
+                                         [["x", "#b111"]],
+                                         ["foonction", "x"]], sort_ctx, fun_scope)
+        expected_tree = """
+            LetTermASTNode Symbols: ['x']
+              LiteralASTNode Literal: 7 Sort: (_ BitVec 3)
+              FunctionApplicationASTNode Function: foonction Sort: Int
+                FunctionApplicationASTNode Function: x Sort: (_ BitVec 3)"""
+        actual_tree = "\n" + result.tree_to_string(12)
+        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_parse_let_term_with_two_defs(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+
+        foonction_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3),
+                                                                            sort_ctx.get_bv_sort(2)],
+                                                              range_sort=sort_ctx.get_bv_sort(3))
+        fun_scope.add_signature("foonction", smt.FunctionSignature(foonction_signature_fn, 2, True))
+
+        result = smt.parse_smtlib2_term(["let",
+                                         [["x", "#b11"], ["y", ["foonction", "#b011", "#b10"]]],
+                                         ["foonction", "y", "x"]], sort_ctx, fun_scope)
+        expected_tree = """
+            LetTermASTNode Symbols: ['x', 'y']
+              LiteralASTNode Literal: 3 Sort: (_ BitVec 2)
+              FunctionApplicationASTNode Function: foonction Sort: (_ BitVec 3)
+                LiteralASTNode Literal: 3 Sort: (_ BitVec 3)
+                LiteralASTNode Literal: 2 Sort: (_ BitVec 2)
+              FunctionApplicationASTNode Function: foonction Sort: (_ BitVec 3)
+                FunctionApplicationASTNode Function: y Sort: (_ BitVec 3)
+                FunctionApplicationASTNode Function: x Sort: (_ BitVec 2)"""
+        actual_tree = "\n" + result.tree_to_string(12)
+        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_fails_for_malformed_let_statement(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+
+        foonction_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3),
+                                                                            sort_ctx.get_bv_sort(2)],
+                                                              range_sort=sort_ctx.get_bv_sort(3))
+        fun_scope.add_signature("foonction", smt.FunctionSignature(foonction_signature_fn, 2, True))
+
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["let", "#b1111"], sort_ctx, fun_scope)
+
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["let", [["foonction", "#b011", "#b10"]], "#b1111"], sort_ctx, fun_scope)
+
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["let", ["x", ["foonction", "#b011", "#b10"]], "#b1111"], sort_ctx, fun_scope)
+
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["let", [["3", ["foonction", "#b011", "#b10"]]], "#b1111"], sort_ctx, fun_scope)
+
 
 class TestParseSmtlib2Problem(unittest.TestCase):
     def test_empty_problem(self):
