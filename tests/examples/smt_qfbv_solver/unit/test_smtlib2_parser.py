@@ -1,4 +1,5 @@
 import unittest
+from typing import List
 import examples.smt_qfbv_solver.smtlib2_parser as smt
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.ast as ast
@@ -471,24 +472,101 @@ class TestParseSmtlib2Problem(unittest.TestCase):
         actual_tree = result[0].tree_to_string()
         assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
 
+    @staticmethod
+    def assert_printed_ast_equal(ast_nodes: List[ast.ASTNode], expected_tree: str, indent: int):
+        actual_tree = "\n"
+        for x in ast_nodes:
+            assert isinstance(x, ast.ASTNode)
+            actual_tree += x.tree_to_string(indent) + "\n"
+        actual_tree = actual_tree.rstrip()
+        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
     def test_assert(self):
         result = smt.parse_smtlib2_problem([["declare-const", "x", "Bool"],
                                             ["declare-fun", "=", ["Bool", "Bool"], "Bool"],
                                             ["assert", ["=", "x", "x"]]])
-        assert type(result) == list
-        assert len(result) == 3
+        expected_tree = """
+          DeclareFunCommandASTNode FunctionName: x DomainSorts: [] RangeSort: Bool
+          DeclareFunCommandASTNode FunctionName: = DomainSorts: ['Bool', 'Bool'] RangeSort: Bool
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: = Sort: Bool
+              FunctionApplicationASTNode Function: x Sort: Bool
+              FunctionApplicationASTNode Function: x Sort: Bool"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
 
-        actual_tree = ""
-        for x in result:
-            assert isinstance(x, ast.ASTNode)
-            actual_tree += x.tree_to_string() + "\n"
-        expected_tree = """DeclareFunCommandASTNode FunctionName: x DomainSorts: [] RangeSort: Bool
-DeclareFunCommandASTNode FunctionName: = DomainSorts: ['Bool', 'Bool'] RangeSort: Bool
-AssertCommandASTNode
-  FunctionApplicationASTNode Function: = Sort: Bool
-    FunctionApplicationASTNode Function: x Sort: Bool
-    FunctionApplicationASTNode Function: x Sort: Bool
-"""
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+    def test_define_fun_no_args_int_value(self):
+        result = smt.parse_smtlib2_problem([["declare-fun", "op", ["Int", "Int"], "Int"],
+                                            ["define-fun", "foo", list(), "Int", ["op", "1", "2"]]])
+        expected_tree = """
+          DeclareFunCommandASTNode FunctionName: op DomainSorts: ['Int', 'Int'] RangeSort: Int
+          DefineFunCommandASTNode FunctionName: foo FormalParameters: [] RangeSort: Int
+            FunctionApplicationASTNode Function: op Sort: Int
+              LiteralASTNode Literal: 1 Sort: Int
+              LiteralASTNode Literal: 2 Sort: Int"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
 
-    # TODO: test push/pop functionality, bitvector-theory functions
+    def test_define_fun_single_arg_int_value(self):
+        result = smt.parse_smtlib2_problem([["declare-fun", "op", ["Int", "Int"], "Int"],
+                                            ["define-fun", "foo", [["x", "Int"]], "Int", ["op", "x", "2"]]])
+        expected_tree = """
+          DeclareFunCommandASTNode FunctionName: op DomainSorts: ['Int', 'Int'] RangeSort: Int
+          DefineFunCommandASTNode FunctionName: foo FormalParameters: ['(x, Int)'] RangeSort: Int
+            FunctionApplicationASTNode Function: op Sort: Int
+              FunctionApplicationASTNode Function: x Sort: Int
+              LiteralASTNode Literal: 2 Sort: Int"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_define_fun_multiple_arg_int_value(self):
+        result = smt.parse_smtlib2_problem([["declare-fun", "op", ["Int", "Int"], "Int"],
+                                            ["define-fun", "foo", [["x", "Int"], ["y", "Int"]],
+                                             "Int", ["op", "x", "y"]]])
+        expected_tree = """
+          DeclareFunCommandASTNode FunctionName: op DomainSorts: ['Int', 'Int'] RangeSort: Int
+          DefineFunCommandASTNode FunctionName: foo FormalParameters: ['(x, Int)', '(y, Int)'] RangeSort: Int
+            FunctionApplicationASTNode Function: op Sort: Int
+              FunctionApplicationASTNode Function: x Sort: Int
+              FunctionApplicationASTNode Function: y Sort: Int"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_define_fun_fails_for_missing_args(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["define-fun", "foo", "Int", "3"]])
+
+    def test_define_fun_fails_for_bad_parameter_sort(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["define-fun", "foo", ["x", "BadType"], "Int", "3"]])
+
+    def test_define_fun_fails_for_bad_range_sort(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["define-fun", "foo", [], "BadType", "3"]])
+
+    def test_define_fun_fails_for_bad_term_sort(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["define-fun", "foo", [], ["_", "BitVec", "2"], "2"]])
+
+    def test_define_fun_fails_for_missing_term(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["define-fun", "foo", [], ["_", "BitVec", "2"]]])
+
+    def test_define_fun_fails_for_undefined_symbol_in_term(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["define-fun", "foo", [["x", "Int"], ["y", "Int"]],
+                                        "Int", ["op", "x", "y"]]])
+
+    def test_define_const_int_value(self):
+        result = smt.parse_smtlib2_problem([["define-const", "foo", "Int", "3"]])
+        expected_tree = """
+          DefineFunCommandASTNode FunctionName: foo FormalParameters: [] RangeSort: Int
+            LiteralASTNode Literal: 3 Sort: Int"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_define_const_bv_value(self):
+        result = smt.parse_smtlib2_problem([["define-const", "foo", ["_", "BitVec", "2"], "#b10"]])
+        expected_tree = """
+          DefineFunCommandASTNode FunctionName: foo FormalParameters: [] RangeSort: (_ BitVec 2)
+            LiteralASTNode Literal: 2 Sort: (_ BitVec 2)"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_define_const_fails_for_bad_term_sort(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["define-const", "foo", ["_", "BitVec", "2"], "1"]])

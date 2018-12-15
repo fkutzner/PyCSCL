@@ -1,4 +1,5 @@
 import abc
+from typing import Tuple, Iterable
 import examples.smt_qfbv_solver.sorts as sorts
 
 
@@ -30,6 +31,19 @@ class ASTNode(abc.ABC):
 class CommandASTNode(ASTNode, abc.ABC):
     """Base class for Command AST nodes."""
     pass
+
+
+class TermASTNode(ASTNode, abc.ABC):
+    """Base class for term AST nodes."""
+
+    @abc.abstractmethod
+    def get_sort(self) -> sorts.Sort:
+        """
+        Returns the term's sort.
+
+        :return: the term's sort.
+        """
+        pass
 
 
 class AssertCommandASTNode(ASTNode):
@@ -136,6 +150,68 @@ class DeclareFunCommandASTNode(ASTNode):
             + " RangeSort: " + str(self.__range_sort)
 
 
+class DefineFunCommandASTNode(ASTNode):
+    """
+    AST node class for the define-fun command.
+
+    Note that there is no AST node class dedicated to constant declarations, since
+    constants are 0-ary functions.
+    """
+
+    def __init__(self, fun_name: str, formal_parameters: Iterable[Tuple[str, sorts.Sort]],
+                 range_sort: sorts.Sort, defining_term: TermASTNode):
+        """
+        Initializes the DeclareFunCommandASTNode object.
+
+        :param fun_name: The function's name.
+        :param formal_parameters: the sequence of the function's formal parameters, with each formal parameter being a
+                                  tuple (s,t) consisting of the parameter symbol s and the parameter's sort t.
+        :param range_sort: The function's range sort.
+        :param defining_term: The function's defining term. All unbound symbols occurring in defining_term must be
+                              parameter symbols.
+        """
+        self.__fun_name = fun_name
+        self.__formal_parameters = tuple(formal_parameters)
+        self.__range_sort = range_sort
+        self.__defining_term = defining_term
+
+    def get_fun_name(self) -> str:
+        """
+        Returns the function's name.
+
+        :return: the function's name.
+        """
+        return self.__fun_name
+
+    def get_formal_parameters(self) -> Iterable[Tuple[str, sorts.Sort]]:
+        """
+        Returns the sequence of the function's formal parameters, with each formal parameter being a tuple (s,t)
+        consisting of the parameter symbol s and the parameter's sort t.
+
+        :return: the sequence of the function's formal parameters, with each formal parameter being a tuple (s,t)
+                 consisting of the parameter symbol s and the parameter's sort t.
+        """
+        return self.__formal_parameters
+
+    def get_range_sort(self) -> sorts.Sort:
+        """
+        Returns the function's range sort.
+
+        :return: the function's range sort.
+        """
+        return self.__range_sort
+
+    def get_child_nodes(self) -> Iterable[ASTNode]:
+        return self.__defining_term,
+
+    def __str__(self):
+        parms_as_str = ["(" + parmName + ", " + str(parmType) + ")" for parmName, parmType in self.__formal_parameters]
+
+        return self.__class__.__name__ + " FunctionName: " + self.__fun_name \
+            + " FormalParameters: " + str(parms_as_str) \
+            + " RangeSort: " + str(self.__range_sort)
+
+
 class SetLogicCommandASTNode(ASTNode):
     """AST node class for the set-logic command."""
 
@@ -160,19 +236,6 @@ class SetLogicCommandASTNode(ASTNode):
 
     def __str__(self):
         return self.__class__.__name__ + " Logic: " + self.__logic_name
-
-
-class TermASTNode(ASTNode, abc.ABC):
-    """Base class for term AST nodes."""
-
-    @abc.abstractmethod
-    def get_sort(self) -> sorts.Sort:
-        """
-        Returns the term's sort.
-
-        :return: the term's sort.
-        """
-        pass
 
 
 class LiteralASTNode(TermASTNode):

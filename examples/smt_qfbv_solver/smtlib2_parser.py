@@ -371,6 +371,67 @@ def parse_cmd_declare_const(parsed_sexp, sort_ctx: sorts.SortContext):
                                                                                      0, True)
 
 
+def parse_cmd_define_fun(parsed_sexp, sort_ctx: sorts.SortContext, scope: SyntacticFunctionScope):
+    """
+    Parses an SMTLib2-formatted define-fun command.
+
+    :param parsed_sexp: The command's s-expression.
+    :param sort_ctx: The current sort context.
+    :param scope: The current function scope.
+    :return: A tuple x,y with x being a DefineFunCommandASTNode representing parsed_sexp and y being the declared
+             function's signature.
+    :raises ValueError if parsed_sexp is a malformed command.
+    """
+    if len(parsed_sexp) != 5 or type(parsed_sexp[1]) != str or type(parsed_sexp[2]) != list:
+        raise ValueError("Invalid define-fun command")
+    fun_name, parameters_sexp, range_sort_sexp, defining_term_sexp = parsed_sexp[1:]
+
+    function_scope = SyntacticFunctionScope(scope)
+    domain_sorts = []
+    formal_parameters = []
+    for x in parameters_sexp:
+        if type(x) != list or len(x) != 2:
+            raise ValueError("Invalid define-fun command: malformed parameters")
+        parameter_sym_str, parameter_ty_sexp = x
+        parameter_sym = parse_smtlib2_symbol(parameter_sym_str)
+        parameter_sort = parse_smtlib2_sort(parameter_ty_sexp, sort_ctx)
+        parameter_sig = (lambda s: FunctionSignature(lambda t: s if len(t) == 0 else None, 0, True))(parameter_sort)
+        function_scope.add_signature(parameter_sym, parameter_sig)
+        domain_sorts.append(parameter_sort)
+        formal_parameters.append((parameter_sym, parameter_sort))
+
+    range_sort = parse_smtlib2_sort(range_sort_sexp, sort_ctx=sort_ctx)
+    defining_term = parse_smtlib2_term(defining_term_sexp, sort_ctx, function_scope)
+
+    if range_sort is not defining_term.get_sort():
+        raise ValueError("Invalid define-fun command: defining term sort does not match function range sort")
+
+    def __signature_fn(concrete_dom_sigs):
+        if list(concrete_dom_sigs) == domain_sorts:
+            return range_sort
+        return None
+
+    return ast.DefineFunCommandASTNode(fun_name, formal_parameters, range_sort, defining_term),\
+        FunctionSignature(__signature_fn, len(domain_sorts), True)
+
+
+def parse_cmd_define_const(parsed_sexp, sort_ctx: sorts.SortContext, scope: SyntacticFunctionScope):
+    """
+    Parses an SMTLib2-formatted define-const command.
+
+    :param parsed_sexp: The command's s-expression.
+    :param sort_ctx: The current sort context.
+    :param scope: The current function scope.
+    :return: A tuple x,y with x being a DefineFunCommandASTNode representing parsed_sexp and y being the declared
+             function's signature.
+    :raises ValueError if parsed_sexp is a malformed command.
+    """
+    if len(parsed_sexp) != 4 or type(parsed_sexp[1]) != str:
+        raise ValueError("Invalid declare-const command")
+    define_fun_sexp = parsed_sexp[:2] + [[]] + parsed_sexp[2:]
+    return parse_cmd_define_fun(define_fun_sexp, sort_ctx, scope)
+
+
 def parse_smtlib2_problem(parsed_sexp):
     """
     Parses an SMTLib2-formatted SMT problem.
@@ -406,6 +467,16 @@ def parse_smtlib2_problem(parsed_sexp):
 
         elif command == "declare-const":
             ast_node, fun_signature = parse_cmd_declare_const(sexp, sort_context)
+            problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
+            return ast_node
+
+        elif command == "define-fun":
+            ast_node, fun_signature = parse_cmd_define_fun(sexp, sort_context, problem_toplevel_function_scope)
+            problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
+            return ast_node
+
+        elif command == "define-const":
+            ast_node, fun_signature = parse_cmd_define_const(sexp, sort_context, problem_toplevel_function_scope)
             problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
             return ast_node
 
