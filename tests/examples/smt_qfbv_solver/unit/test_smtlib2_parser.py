@@ -124,61 +124,6 @@ class TestParseSmtlib2Symbol(unittest.TestCase):
         assert smt.parse_smtlib2_symbol("a/b@_c%^") == "a/b@_c%^"
 
 
-class TestSyntacticFunctionScope(unittest.TestCase):
-    def test_has_added_signature(self):
-        sort_ctx = sorts.SortContext()
-        sig = smt.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,
-                                    1, True)
-        under_test = smt.SyntacticFunctionScope(None)
-        under_test.add_signature("foo", sig)
-
-        lookup_result = under_test.get_signature("foo")
-        assert lookup_result is not None
-        result_sig, result_name = lookup_result
-        assert result_sig is sig
-        assert result_name == "foo"
-
-    def test_queries_parent_scope(self):
-        sort_ctx = sorts.SortContext()
-        sig = smt.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,
-                                    1, True)
-        parent = smt.SyntacticFunctionScope(None)
-        under_test = smt.SyntacticFunctionScope(parent)
-        parent.add_signature("foo", sig)
-
-        lookup_result = under_test.get_signature("foo")
-        assert lookup_result is not None
-        result_sig, result_name = lookup_result
-        assert result_sig is sig
-        assert result_name == "foo"
-
-    def test_set_parent_scope(self):
-        sort_ctx = sorts.SortContext()
-        sig = smt.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,
-                                    1, True)
-        parent = smt.SyntacticFunctionScope(None)
-        under_test = smt.SyntacticFunctionScope(None)
-        under_test.set_parent(parent)
-        parent.add_signature("foo", sig)
-
-        lookup_result = under_test.get_signature("foo")
-        assert lookup_result is not None
-        result_sig, result_name = lookup_result
-        assert result_sig is sig
-        assert result_name == "foo"
-
-    def test_refuses_to_add_when_unshadowable(self):
-        sort_ctx = sorts.SortContext()
-        sig = smt.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,
-                                    1, False)
-        parent = smt.SyntacticFunctionScope(None)
-        parent.add_signature("foo", sig)
-
-        under_test = smt.SyntacticFunctionScope(parent)
-        with self.assertRaises(ValueError):
-            under_test.add_signature("foo", sig)
-
-
 def create_function_signature_fn(domain_sorts, range_sort):
     def __result(x):
         if list(x) == domain_sorts:
