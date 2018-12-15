@@ -331,6 +331,26 @@ def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
     return ast.LetTermASTNode(let_defs, enclosed_term)
 
 
+def parse_smtlib2_underscore_bv_literal_term(parsed_sexp, sort_ctx: sorts.SortContext) -> ast.LiteralASTNode:
+    """
+    Parses an SMTLib2-formatted term matching "(_ bvX y)".
+
+    :param parsed_sexp: The term's s-expression.
+    :param sort_ctx: The current sort context.
+    :return: A LiteralASTNode representing parsed_sexp.
+    :raises ValueError if parsed_sexp is a malformed term.
+    """
+
+    if len(parsed_sexp) != 3 or parsed_sexp[0] != "_" or parsed_sexp[1][0:2] != "bv" or not parsed_sexp[2].isnumeric():
+        raise ValueError("Malformed literal term " + str(parsed_sexp))
+
+    literal_str = parsed_sexp[1][2:]
+    if not literal_str.isnumeric():
+        raise ValueError("Malformed literal term " + str(parsed_sexp) + ": bad literal value")
+
+    return ast.LiteralASTNode(int(literal_str), sort_ctx.get_bv_sort(int(parsed_sexp[2])))
+
+
 def parse_smtlib2_term(parsed_sexp, sort_ctx: sorts.SortContext, fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
     """
     Parses an SMTLib2-formatted term.
@@ -345,6 +365,8 @@ def parse_smtlib2_term(parsed_sexp, sort_ctx: sorts.SortContext, fun_scope: Synt
         return parse_smtlib2_flat_term(parsed_sexp, sort_ctx, fun_scope)
     if parsed_sexp[0] == "let":
         return parse_smtlib2_let_term(parsed_sexp, sort_ctx, fun_scope)
+    if parsed_sexp[0] == "_":
+        return parse_smtlib2_underscore_bv_literal_term(parsed_sexp, sort_ctx)
     return parse_smtlib2_func_application_term(parsed_sexp, sort_ctx, fun_scope)
 
 

@@ -410,15 +410,6 @@ class TestParseSmtlib2Term(unittest.TestCase):
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term(["let", [["3", ["foonction", "#b011", "#b10"]]], "#b1111"], sort_ctx, fun_scope)
 
-    @staticmethod
-    def assert_printed_ast_equal(ast_nodes: List[ast.ASTNode], expected_tree: str, indent: int):
-        actual_tree = "\n"
-        for x in ast_nodes:
-            assert isinstance(x, ast.ASTNode)
-            actual_tree += x.tree_to_string(indent) + "\n"
-        actual_tree = actual_tree.rstrip()
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
-
     def test_parametrized_function_expression_is_term(self):
         sort_ctx = sorts.SortContext()
         fun_scope = smt.SyntacticFunctionScope(None)
@@ -463,6 +454,38 @@ class TestParseSmtlib2Term(unittest.TestCase):
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term([["declare-const" "x" "Int"],
                                     ["_", "foonction", "11", "x"]], sort_ctx, fun_scope)
+
+    def test_parse_underscore_bv_literal(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+        result = smt.parse_smtlib2_term(["_", "bv500", "12"], sort_ctx, fun_scope)
+        assert isinstance(result, ast.LiteralASTNode)
+        assert result.get_literal() == 500
+        assert result.get_sort() is sort_ctx.get_bv_sort(12)
+
+    def test_parse_underscore_bv_literal_fails_for_malformed_literal(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+
+        # Missing literal
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["_", "bv", "12"], sort_ctx, fun_scope)
+
+        # Unsupported literal type
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["_", "unsupported", "12"], sort_ctx, fun_scope)
+
+        # Malformed literal
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["_", "bv1Foo2", "12"], sort_ctx, fun_scope)
+
+        # Missing bitvector length
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["_", "bv500"], sort_ctx, fun_scope)
+
+        # Malformed bitvector length
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term(["_", "bv500", "1Foo2"], sort_ctx, fun_scope)
 
 
 class TestParseSmtlib2Problem(unittest.TestCase):
