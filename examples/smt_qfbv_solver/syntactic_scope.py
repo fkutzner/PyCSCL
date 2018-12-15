@@ -49,6 +49,7 @@ class FunctionSignature:
 
         :return: the number of the function's numeral parameters.
         """
+        return self.__num_parameters
 
     def is_shadowable(self):
         """
