@@ -410,6 +410,60 @@ class TestParseSmtlib2Term(unittest.TestCase):
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term(["let", [["3", ["foonction", "#b011", "#b10"]]], "#b1111"], sort_ctx, fun_scope)
 
+    @staticmethod
+    def assert_printed_ast_equal(ast_nodes: List[ast.ASTNode], expected_tree: str, indent: int):
+        actual_tree = "\n"
+        for x in ast_nodes:
+            assert isinstance(x, ast.ASTNode)
+            actual_tree += x.tree_to_string(indent) + "\n"
+        actual_tree = actual_tree.rstrip()
+        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_parametrized_function_expression_is_term(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+
+        def foonction_signature_fn(x):
+            if len(x) < 3 or type(x[0]) is not int or type(x[1]) is not int or not isinstance(x[2], sorts.Sort):
+                return None
+            return sort_ctx.get_bv_sort(x[0] + x[1] + x[2].get_len())
+
+        fun_scope.add_signature(smt.SyntacticFunctionScope.mangle_parametrized_function_name("foonction"),
+                                smt.FunctionSignature(foonction_signature_fn, 1, True))
+
+        result = smt.parse_smtlib2_term([["_", "foonction", "11", "2"], "#b101"], sort_ctx, fun_scope)
+        expected_tree = """
+          FunctionApplicationASTNode Function: 0!foonction Sort: (_ BitVec 16) Parameters: (11, 2)
+            LiteralASTNode Literal: 5 Sort: (_ BitVec 3)"""
+        actual_tree = "\n" + result.tree_to_string(10)
+        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
+    def test_fails_for_malformed_parametrized_function_expression(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+
+        def foonction_signature_fn(x):
+            if len(x) < 3 or type(x[0]) is not int or type(x[1]) is not int\
+                    or not isinstance(x[2], sorts.BitvectorSort):
+                return None
+            return sort_ctx.get_bv_sort(x[0] + x[1] + x[2].get_len())
+
+        fun_scope.add_signature(smt.SyntacticFunctionScope.mangle_parametrized_function_name("foonction"),
+                                smt.FunctionSignature(foonction_signature_fn, 1, True))
+
+        # Bad argument sort
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term([["_", "foonction", "11", "2"], "3"], sort_ctx, fun_scope)
+
+        # Bad number of arguments
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term([["_", "foonction", "11", "2"]], sort_ctx, fun_scope)
+
+        # Non-numeric function parameters
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_term([["declare-const" "x" "Int"],
+                                    ["_", "foonction", "11", "x"]], sort_ctx, fun_scope)
+
 
 class TestParseSmtlib2Problem(unittest.TestCase):
     def test_empty_problem(self):

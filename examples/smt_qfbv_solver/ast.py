@@ -272,23 +272,36 @@ class LiteralASTNode(TermASTNode):
 class FunctionApplicationASTNode(TermASTNode):
     """AST node class for terms representing a function application."""
 
-    def __init__(self, fname, argument_nodes, sort):
+    def __init__(self, fname, argument_nodes, sort, parameters: Tuple[int] = tuple()):
         """
         Initializes the FunctionApplicationASTNode object.
 
         :param fname: The function name.
         :param argument_nodes: The AST nodes of the function arguments.
         :param sort: The function's range sort.
+        :param parameters: The function's parameters (i.e. the sequence of numerals in (_ fname num1 num2 ... numN)
+                           expressions). If the function is not parametrized, this argument is required to be the
+                           empty tuple.
         """
         self.__sort = sort
         self.__argument_nodes = argument_nodes
         self.__fname = fname
+        self.__parameters = parameters
 
     def get_sort(self):
         return self.__sort
 
     def get_child_nodes(self):
         return tuple(self.__argument_nodes)
+
+    def get_parameters(self):
+        """
+        Returns the function's parameters, i.e. the sequence of numerals in (_ fname num1 num2 ... numN) expressions.
+        If the function is not parametrized, the empty tuple is returned instead.
+
+        :return: the function's parameters as described above.
+        """
+        return self.__parameters
 
     def get_function_name(self):
         """
@@ -299,7 +312,10 @@ class FunctionApplicationASTNode(TermASTNode):
         return self.__fname
 
     def __str__(self):
-        return self.__class__.__name__ + " Function: " + self.__fname + " Sort: " + str(self.__sort)
+        result = self.__class__.__name__ + " Function: " + self.__fname + " Sort: " + str(self.__sort)
+        if len(self.__parameters) != 0:
+            result += " Parameters: " + str(self.__parameters)
+        return result
 
 
 class LetTermASTNode(TermASTNode):

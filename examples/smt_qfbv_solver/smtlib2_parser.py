@@ -82,7 +82,7 @@ class FunctionSignature:
     A function signature.
     """
 
-    def __init__(self, domain_sorts_to_range_sort_fn, arity: int, is_shadowable: bool):
+    def __init__(self, domain_sorts_to_range_sort_fn, arity: int, is_shadowable: bool, num_parameters: int = 0):
         """
         Initializes the FunctionSignature object.
 
@@ -92,10 +92,13 @@ class FunctionSignature:
                                               If s1, ..., sN is not part of the function's domain, None is returned.
         :param arity: The function's arity.
         :param is_shadowable: True iff the function may be shadowed and may shadow other functions; False otherwise.
+        :param num_parameters: The non-negative number of the function's parameters. If the function is not
+                               parametrized, num_parameters must be 0.
         """
         self.__dtr_fun = domain_sorts_to_range_sort_fn
         self.__arity = arity
         self.__is_shadowable = is_shadowable
+        self.__num_parameters = num_parameters
 
     def get_range_sort(self, domain_sorts):
         """
@@ -113,6 +116,15 @@ class FunctionSignature:
         :return: The function's arity.
         """
         return self.__arity
+
+    def get_num_parameters(self):
+        """
+        Gets the number of the function's numeral parameters.
+
+        This value is used to reflect the number N of parameters a function F has in a (_ F <p0> <p1> ... <pN>) term.
+
+        :return: the number of the function's numeral parameters.
+        """
 
     def is_shadowable(self):
         """
@@ -198,6 +210,28 @@ class SyntacticFunctionScope:
         :return: The current scope's parent scope.
         """
 
+    @staticmethod
+    def mangle_parametrized_function_name(name: str):
+        """
+        Mangles the name of a parametrized function such that its name is not a symbol.
+
+        :param name: The function's name.
+        :return: The mangled name.
+        """
+        return "0!" + name
+
+    @staticmethod
+    def demangle_parametrized_function_name(name: str):
+        """
+        Demangles the name of a parametrized function.
+
+        :param name: The function's mangled name.
+        :return: The demangled name.
+        """
+        if len(name) < 2 or name[0:1] != "0!":
+            raise ValueError("Cannot demangle non-mangled function name " + name)
+        return name[2:]
+
 
 def parse_smtlib2_flat_term(parsed_sexp, sort_ctx: sorts.SortContext,
                             fun_scope: SyntacticFunctionScope) -> ast.TermASTNode:
@@ -237,7 +271,18 @@ def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext
     if len(parsed_sexp) == 0:
         raise ValueError("Empty term")
 
-    fname = parsed_sexp[0]
+    if type(parsed_sexp[0]) is list:
+        param_fn_sexp = parsed_sexp[0]
+        if len(param_fn_sexp) < 2\
+                or param_fn_sexp[0] != "_"\
+                or not all(x.isnumeric() for x in param_fn_sexp[2:]):
+            raise ValueError("Malformed parametrized function expression " + str(param_fn_sexp))
+        fname = SyntacticFunctionScope.mangle_parametrized_function_name(param_fn_sexp[1])
+        fparams = tuple(int(x) for x in param_fn_sexp[2:])
+    else:
+        fname = parsed_sexp[0]
+        fparams = tuple()
+
     fsig_lookup_result = fun_scope.get_signature(fname)
 
     if fsig_lookup_result is None:
@@ -249,11 +294,11 @@ def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext
 
     args = [parse_smtlib2_term(x, sort_ctx, fun_scope) for x in parsed_sexp[1:]]
 
-    term_sort = func_sig.get_range_sort((x.get_sort() for x in args))
+    term_sort = func_sig.get_range_sort(fparams + tuple(x.get_sort() for x in args))
     if term_sort is None:
         raise ValueError("Illegally typed arguments for function " + fname)
 
-    return ast.FunctionApplicationASTNode(func_name, args, term_sort)
+    return ast.FunctionApplicationASTNode(func_name, args, term_sort, fparams)
 
 
 def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
