@@ -2,6 +2,7 @@ from typing import Union
 import re
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.ast as ast
+import examples.smt_qfbv_solver.theories as theories
 from examples.smt_qfbv_solver.syntactic_scope import SyntacticFunctionScope, FunctionSignature
 
 
@@ -354,8 +355,10 @@ def parse_smtlib2_problem(parsed_sexp):
     :return: A list of ASTNodes, representing parsed_sexp.
     :raises ValueError if parsed_sexp is a malformed problem.
     """
-    problem_toplevel_function_scope = SyntacticFunctionScope(None)
+
     sort_context = sorts.SortContext()
+    core_theory = theories.CoreSyntacticFunctionScopeFactory().create_syntactic_scope(sort_context)
+    problem_toplevel_function_scope = SyntacticFunctionScope(core_theory)
     push_level = 0
 
     def parse_command(sexp):

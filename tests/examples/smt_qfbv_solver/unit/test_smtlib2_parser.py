@@ -505,13 +505,13 @@ class TestParseSmtlib2Problem(unittest.TestCase):
 
     def test_assert(self):
         result = smt.parse_smtlib2_problem([["declare-const", "x", "Bool"],
-                                            ["declare-fun", "=", ["Bool", "Bool"], "Bool"],
-                                            ["assert", ["=", "x", "x"]]])
+                                            ["declare-fun", "my=", ["Bool", "Bool"], "Bool"],
+                                            ["assert", ["my=", "x", "x"]]])
         expected_tree = """
           DeclareFunCommandASTNode FunctionName: x DomainSorts: [] RangeSort: Bool
-          DeclareFunCommandASTNode FunctionName: = DomainSorts: ['Bool', 'Bool'] RangeSort: Bool
+          DeclareFunCommandASTNode FunctionName: my= DomainSorts: ['Bool', 'Bool'] RangeSort: Bool
           AssertCommandASTNode
-            FunctionApplicationASTNode Function: = Sort: Bool
+            FunctionApplicationASTNode Function: my= Sort: Bool
               FunctionApplicationASTNode Function: x Sort: Bool
               FunctionApplicationASTNode Function: x Sort: Bool"""
         self.assert_printed_ast_equal(result, expected_tree, 10)
@@ -592,3 +592,17 @@ class TestParseSmtlib2Problem(unittest.TestCase):
     def test_define_const_fails_for_bad_term_sort(self):
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_problem([["define-const", "foo", ["_", "BitVec", "2"], "1"]])
+
+    def test_core_theory_is_enabled_by_default(self):
+        result = smt.parse_smtlib2_problem([["assert", ["or", ["=", "true", "false"],
+                                                              ["distinct", "true", "false"]]]])
+        expected_tree = """
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: or Sort: Bool
+              FunctionApplicationASTNode Function: = Sort: Bool
+                FunctionApplicationASTNode Function: true Sort: Bool
+                FunctionApplicationASTNode Function: false Sort: Bool
+              FunctionApplicationASTNode Function: distinct Sort: Bool
+                FunctionApplicationASTNode Function: true Sort: Bool
+                FunctionApplicationASTNode Function: false Sort: Bool"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
