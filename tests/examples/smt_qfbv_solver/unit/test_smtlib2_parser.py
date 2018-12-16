@@ -622,3 +622,7 @@ class TestParseSmtlib2Problem(unittest.TestCase):
                 LiteralASTNode Literal: 5 Sort: (_ BitVec 3)
                 LiteralASTNode Literal: 1 Sort: (_ BitVec 3)"""
         self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_ignores_set_info_commands(self):
+        result = smt.parse_smtlib2_problem([["set-info", ":smt-lib-version", "2.0"]])
+        assert result == []

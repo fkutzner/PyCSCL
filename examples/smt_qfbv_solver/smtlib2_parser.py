@@ -461,4 +461,4 @@ def parse_smtlib2_problem(parsed_sexp):
         else:
             raise ValueError("Unsupported command " + command)
 
-    return [parse_command(x) for x in parsed_sexp]
+    return [x for x in (parse_command(x) for x in parsed_sexp) if x is not None]
