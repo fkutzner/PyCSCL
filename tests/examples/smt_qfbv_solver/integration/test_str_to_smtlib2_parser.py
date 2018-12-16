@@ -16,15 +16,9 @@ class TestSExprParserAndSMTLib2ParserIntegration(unittest.TestCase):
         assert len(result) == 1
         assert result[0].tree_to_string() == "SetLogicCommandASTNode Logic: QF_BV"
 
-    def test_parse_single_expr(self):
-        result = parse_smtlib2_problem(parse_sexp(lex_sexp("(set-logic QF_BV)")))
-        assert len(result) == 1
-        assert result[0].tree_to_string() == "SetLogicCommandASTNode Logic: QF_BV"
-
     @staticmethod
     def __test_parse(smtlib_problem: str, expected_ast: str):
         result = parse_smtlib2_problem(parse_sexp(lex_sexp(smtlib_problem)))
-
         result_ast = ""
         for x in result:
             assert isinstance(x, ast.ASTNode)
@@ -53,4 +47,48 @@ class TestSExprParserAndSMTLib2ParserIntegration(unittest.TestCase):
                 FunctionApplicationASTNode Function: y Sort: (_ BitVec 20)
             CheckSATCommandASTNode"""
 
+        self.__test_parse(problem, expected_result_ast)
+
+    def test_parse_sign_extend_problem(self):
+        problem = """(set-logic QF_BV)
+                     (set-info :smt-lib-version 2.0)
+                     (set-info :category "check")
+                     (set-info :status unsat)
+                     (declare-fun x () (_ BitVec 2))
+                     (assert (xor (bvslt ((_ sign_extend 1) x) (_ bv0 3)) (bvslt x (_ bv0 2))))
+                     (check-sat)"""
+
+        expected_result_ast = """
+            SetLogicCommandASTNode Logic: QF_BV
+            DeclareFunCommandASTNode FunctionName: x DomainSorts: [] RangeSort: (_ BitVec 2)
+            AssertCommandASTNode
+              FunctionApplicationASTNode Function: xor Sort: Bool
+                FunctionApplicationASTNode Function: bvslt Sort: Bool
+                  FunctionApplicationASTNode Function: 0!sign_extend Sort: (_ BitVec 3) Parameters: (1,)
+                    FunctionApplicationASTNode Function: x Sort: (_ BitVec 2)
+                  LiteralASTNode Literal: 0 Sort: (_ BitVec 3)
+                FunctionApplicationASTNode Function: bvslt Sort: Bool
+                  FunctionApplicationASTNode Function: x Sort: (_ BitVec 2)
+                  LiteralASTNode Literal: 0 Sort: (_ BitVec 2)
+            CheckSATCommandASTNode"""
+        self.__test_parse(problem, expected_result_ast)
+
+    def test_parse_nestedlet(self):
+        problem = """(assert
+                       (let ((x true))
+                         (and
+                           (let ((y false))
+                             y)
+                           x)))
+                     (check-sat)"""
+        expected_result_ast = """
+            AssertCommandASTNode
+              LetTermASTNode Symbols: ['x']
+                FunctionApplicationASTNode Function: true Sort: Bool
+                FunctionApplicationASTNode Function: and Sort: Bool
+                  LetTermASTNode Symbols: ['y']
+                    FunctionApplicationASTNode Function: false Sort: Bool
+                    FunctionApplicationASTNode Function: y Sort: Bool
+                  FunctionApplicationASTNode Function: x Sort: Bool
+            CheckSATCommandASTNode"""
         self.__test_parse(problem, expected_result_ast)
