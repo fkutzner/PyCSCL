@@ -345,6 +345,31 @@ def parse_cmd_define_const(parsed_sexp, sort_ctx: sorts.SortContext, scope: Synt
     return parse_cmd_define_fun(define_fun_sexp, sort_ctx, scope)
 
 
+def add_logic_as_parent(scope: SyntacticFunctionScope, sort_ctx: sorts.SortContext, logic: str):
+    """
+    Extends a given scope with the symbols of the given logic.
+
+    The logic's symbols are defined in separate scopes, which are then added as a parent scope
+    of `scope`. The original parent scope of `scope` is added as a parent scope of the scopes introduced
+    by this function.
+
+    :param scope: The scope to be extended.
+    :param sort_ctx: The sort context.
+    :param logic: The logic whose declarations shall to be added to the scope. Currently, only the QF_BV logic is
+                  supported.
+    :return: None
+    :raises ValueError if the specified logic is unsupported.
+    """
+    if logic == "QF_BV":
+        bv_scope = theories.FixedSizeBVSyntacticFunctionScopeFactory().create_syntactic_scope(sort_ctx)
+        bvext_scope = theories.QFBVExtSyntacticFunctionScopeFactory().create_syntactic_scope(sort_ctx)
+        bvext_scope.set_parent(bv_scope)
+        bv_scope.set_parent(scope.get_parent())
+        scope.set_parent(bvext_scope)
+    else:
+        raise ValueError("Unsupported logic " + logic)
+
+
 def parse_smtlib2_problem(parsed_sexp):
     """
     Parses an SMTLib2-formatted SMT problem.
@@ -398,8 +423,9 @@ def parse_smtlib2_problem(parsed_sexp):
         elif command == "set-logic":
             if len(sexp) != 2 or not type(sexp[1]) == str:
                 raise ValueError("Invalid set-logic command")
-            # TODO: parse the logic and extend the current function scope with the theory
-            return ast.SetLogicCommandASTNode(sexp[1])
+            logic = sexp[1]
+            add_logic_as_parent(problem_toplevel_function_scope, sort_context, logic)
+            return ast.SetLogicCommandASTNode(logic)
 
         elif command == "push":
             if len(sexp) > 2:

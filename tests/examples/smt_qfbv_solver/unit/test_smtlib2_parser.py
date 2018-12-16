@@ -606,3 +606,19 @@ class TestParseSmtlib2Problem(unittest.TestCase):
                 FunctionApplicationASTNode Function: true Sort: Bool
                 FunctionApplicationASTNode Function: false Sort: Bool"""
         self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_qfbv_theory_is_enabled_by_set_logic(self):
+        result = smt.parse_smtlib2_problem([["set-logic", "QF_BV"],
+                                            ["assert", ["bvsgt", ["bvand", "#b111", "#b101"],
+                                                                 ["bvsdiv", "#b101", "#b001"]]]])
+        expected_tree = """
+          SetLogicCommandASTNode Logic: QF_BV
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: bvsgt Sort: Bool
+              FunctionApplicationASTNode Function: bvand Sort: (_ BitVec 3)
+                LiteralASTNode Literal: 7 Sort: (_ BitVec 3)
+                LiteralASTNode Literal: 5 Sort: (_ BitVec 3)
+              FunctionApplicationASTNode Function: bvsdiv Sort: (_ BitVec 3)
+                LiteralASTNode Literal: 5 Sort: (_ BitVec 3)
+                LiteralASTNode Literal: 1 Sort: (_ BitVec 3)"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
