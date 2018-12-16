@@ -46,6 +46,11 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         assert result_sig is sig
         assert result_name == "foo"
 
+    def test_get_parent_scope(self):
+        parent = synscope.SyntacticFunctionScope(None)
+        child = synscope.SyntacticFunctionScope(parent)
+        assert child.get_parent() is parent
+
     def test_refuses_to_add_when_unshadowable(self):
         sort_ctx = sorts.SortContext()
         sig = synscope.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,

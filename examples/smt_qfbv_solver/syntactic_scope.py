@@ -134,6 +134,7 @@ class SyntacticFunctionScope:
 
         :return: The current scope's parent scope.
         """
+        return self.__parent
 
     @staticmethod
     def mangle_parametrized_function_name(name: str):
