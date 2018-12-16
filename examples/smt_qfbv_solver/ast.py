@@ -15,6 +15,17 @@ class ASTNode(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def set_child_node(self, index: int, node):
+        """
+        Replaces the index'th child node by the given node.
+
+        :param index: An integer with 0 <= index < len(get_child_nodes()).
+        :param node: The node to be inserted as the index'th child node.
+        :return: None.
+        """
+        pass
+
     def tree_to_string(self, indent=0):
         """
         Prints the AST tree rooted at this node to a string.
@@ -54,6 +65,11 @@ class AssertCommandASTNode(ASTNode):
     def get_child_nodes(self):
         return self.__child_nodes
 
+    def set_child_node(self, index: int, node: ASTNode):
+        if index != 0:
+            raise ValueError("index " + str(index) + " out of bounds")
+        self.__child_nodes = (node,)
+
     def __str__(self):
         return self.__class__.__name__
 
@@ -72,6 +88,9 @@ class PushPopCommandASTNode(ASTNode):
     def get_child_nodes(self):
         return tuple()
 
+    def set_child_node(self, index: int, node: ASTNode):
+        raise ValueError("index " + str(index) + " out of bounds")
+
     def is_push(self):
         """
         Determines whether the node represents a push or a pop command.
@@ -89,6 +108,9 @@ class CheckSATCommandASTNode(ASTNode):
 
     def get_child_nodes(self):
         return tuple()
+
+    def set_child_node(self, index: int, node: ASTNode):
+        raise ValueError("index " + str(index) + " out of bounds")
 
     def __str__(self):
         return self.__class__.__name__
@@ -141,6 +163,9 @@ class DeclareFunCommandASTNode(ASTNode):
 
     def get_child_nodes(self):
         return tuple()
+
+    def set_child_node(self, index: int, node: ASTNode):
+        raise ValueError("index " + str(index) + " out of bounds")
 
     def __str__(self):
         sorts_as_str = [str(sort) for sort in self.__domain_sorts]
@@ -204,6 +229,11 @@ class DefineFunCommandASTNode(ASTNode):
     def get_child_nodes(self) -> Iterable[ASTNode]:
         return self.__defining_term,
 
+    def set_child_node(self, index: int, node: ASTNode):
+        if index != 0:
+            raise ValueError("index " + str(index) + " out of bounds")
+        self.__defining_term = node
+
     def __str__(self):
         parms_as_str = ["(" + parmName + ", " + str(parmType) + ")" for parmName, parmType in self.__formal_parameters]
 
@@ -225,6 +255,9 @@ class SetLogicCommandASTNode(ASTNode):
 
     def get_child_nodes(self):
         return tuple()
+
+    def set_child_node(self, index: int, node: ASTNode):
+        raise ValueError("index " + str(index) + " out of bounds")
 
     def get_logic_name(self):
         """
@@ -256,6 +289,9 @@ class LiteralASTNode(TermASTNode):
 
     def get_child_nodes(self):
         return tuple()
+
+    def set_child_node(self, index: int, node: ASTNode):
+        raise ValueError("index " + str(index) + " out of bounds")
 
     def get_literal(self):
         """
@@ -294,6 +330,11 @@ class FunctionApplicationASTNode(TermASTNode):
     def get_child_nodes(self):
         return tuple(self.__argument_nodes)
 
+    def set_child_node(self, index: int, node: ASTNode):
+        if index < 0 or index >= len(self.__argument_nodes):
+            raise ValueError("index " + str(index) + " out of bounds")
+        self.__argument_nodes[index] = node
+
     def get_parameters(self):
         """
         Returns the function's parameters, i.e. the sequence of numerals in (_ fname num1 num2 ... numN) expressions.
@@ -310,6 +351,15 @@ class FunctionApplicationASTNode(TermASTNode):
         :return: the applied function's name.
         """
         return self.__fname
+
+    def set_function_name(self, name: str):
+        """
+        Sets the applied function's name.
+
+        :param name: the applied function's new name.
+        :return: None
+        """
+        self.__fname = name
 
     def __str__(self):
         result = self.__class__.__name__ + " Function: " + self.__fname + " Sort: " + str(self.__sort)
@@ -330,11 +380,20 @@ class LetTermASTNode(TermASTNode):
         :param enclosed_term: the term defining the value of the let statement.
         """
 
-        self.__pairs_of_symbols_and_defining_terms = pairs_of_symbols_and_defining_terms
+        self.__pairs_of_symbols_and_defining_terms = list(pairs_of_symbols_and_defining_terms)
         self.__enclosed_term = enclosed_term
 
     def get_child_nodes(self):
         return [x[1] for x in self.__pairs_of_symbols_and_defining_terms] + [self.__enclosed_term]
+
+    def set_child_node(self, index: int, node: ASTNode):
+        if index < 0 or index > len(self.__pairs_of_symbols_and_defining_terms):
+            raise ValueError("index " + str(index) + " out of bounds")
+        if index < len(self.__pairs_of_symbols_and_defining_terms):
+            sym, _ = self.__pairs_of_symbols_and_defining_terms[index]
+            self.__pairs_of_symbols_and_defining_terms[index] = (sym, node)
+        else:
+            self.__enclosed_term = node
 
     def get_sort(self):
         return self.__enclosed_term.get_sort()
