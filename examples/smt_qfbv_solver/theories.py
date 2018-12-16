@@ -149,3 +149,77 @@ class FixedSizeBVSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFacto
         self.__add_comparison_fns(result, sort_ctx)
 
         return result
+
+
+class QFBVExtSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
+    """
+    A SyntacticFunctionScopeFactory for the extensions defined in the QF_BV logic.
+
+    For the sake of simplicity, the extensions defined in the QF_BV logic (e.g. the bvnand function)
+    are elevated to the "theory" status, even though they can be defined in terms of the FixedSizeBitVectors
+    theory.
+
+    See http://smtlib.cs.uiowa.edu/theories-FixedSizeBitVectors.shtml
+        http://smtlib.cs.uiowa.edu/logics-all.shtml#QF_BV
+    """
+
+    @staticmethod
+    def __add_bv_binary_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
+        def __binary_sig_fn(x):
+            if len(x) == 2 and all(isinstance(z, sorts.BitvectorSort) for z in x) and x[0].get_len() == x[1].get_len():
+                return sort_ctx.get_bv_sort(x[0].get_len())
+
+        binary_sig = synscope.FunctionSignature(__binary_sig_fn, 2, False)
+
+        for name in ("bvnand", "bvnor", "bvxor", "bvxnor", "bvcomp", "bvsub", "bvsdiv", "bvsrem", "bvsmod", "bvashr"):
+            target.add_signature(name, binary_sig)
+
+    @staticmethod
+    def __add_comparison_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
+        def __comp_sig_fn(x):
+            if len(x) == 2 and all(isinstance(z, sorts.BitvectorSort) for z in x) and x[0].get_len() == x[1].get_len():
+                return sort_ctx.get_bool_sort()
+        comp_sig = synscope.FunctionSignature(__comp_sig_fn, 2, False)
+
+        for name in ("bvule", "bvugt", "bvuge", "bvslt", "bvsle", "bvsgt", "bvsge"):
+            target.add_signature(name, comp_sig)
+
+    @staticmethod
+    def __add_repeat_fn(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
+        def __repeat_sig_fn(x):
+            if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
+                return sort_ctx.get_bv_sort(x[0] * x[1].get_len())
+        fname = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("repeat")
+        target.add_signature(fname, synscope.FunctionSignature(__repeat_sig_fn, 1, False, 1))
+
+    @staticmethod
+    def __add_extend_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
+        def __extend_sig_fn(x):
+            if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
+                return sort_ctx.get_bv_sort(x[0] + x[1].get_len())
+        extend_sig = synscope.FunctionSignature(__extend_sig_fn, 1, False, 1)
+        zero_extend_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("zero_extend")
+        sign_extend_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("sign_extend")
+        target.add_signature(zero_extend_name, extend_sig)
+        target.add_signature(sign_extend_name, extend_sig)
+
+    @staticmethod
+    def __add_rotate_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
+        def __rotate_sig_fn(x):
+            if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
+                return sort_ctx.get_bv_sort(x[1].get_len())
+        rotate_sig = synscope.FunctionSignature(__rotate_sig_fn, 1, False, 1)
+        rl_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("rotate_left")
+        rr_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("rotate_right")
+        target.add_signature(rl_name, rotate_sig)
+        target.add_signature(rr_name, rotate_sig)
+
+    def create_syntactic_scope(self,
+                               sort_ctx: sorts.SortContext) -> synscope.SyntacticFunctionScope:
+        result = synscope.SyntacticFunctionScope(None)
+        self.__add_bv_binary_fns(result, sort_ctx)
+        self.__add_comparison_fns(result, sort_ctx)
+        self.__add_repeat_fn(result, sort_ctx)
+        self.__add_extend_fns(result, sort_ctx)
+        self.__add_rotate_fns(result, sort_ctx)
+        return result
