@@ -100,7 +100,9 @@ def parse_smtlib2_flat_term(parsed_sexp, sort_ctx: sorts.SortContext,
             raise ValueError("Malformed constant")
         else:
             func_sig, func_name = constant_sig
-            return ast.FunctionApplicationASTNode(func_name, tuple(), func_sig.get_range_sort(tuple()))
+            declaration = fun_scope.get_declaration(parsed_sexp)
+            return ast.FunctionApplicationASTNode(func_name, tuple(), func_sig.get_range_sort(tuple()),
+                                                  declaration=declaration)
 
 
 def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext,
@@ -144,7 +146,8 @@ def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext
     if term_sort is None:
         raise ValueError("Illegally typed arguments for function " + fname)
 
-    return ast.FunctionApplicationASTNode(func_name, args, term_sort, fparams)
+    declaration = fun_scope.get_declaration(fname)
+    return ast.FunctionApplicationASTNode(func_name, args, term_sort, fparams, declaration=declaration)
 
 
 def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
@@ -163,6 +166,7 @@ def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
 
     fun_scope_extension = SyntacticFunctionScope(fun_scope)
 
+    result = ast.LetTermASTNode()
     let_defs = []
     for (x, y) in parsed_sexp[1]:
         name = parse_smtlib2_symbol(x)
@@ -171,10 +175,13 @@ def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
         const_sig = (lambda const_sort_: FunctionSignature(lambda z: const_sort_ if len(z) == 0 else None,
                                                            0, True))(const_sort)
         fun_scope_extension.add_signature(name, const_sig)
+        fun_scope_extension.add_declaration(name, result)
         let_defs.append((name, defining_term))
 
     enclosed_term = parse_smtlib2_term(parsed_sexp[2], sort_ctx, fun_scope_extension)
-    return ast.LetTermASTNode(let_defs, enclosed_term)
+    result.set_definitions(let_defs)
+    result.set_enclosed_term(enclosed_term)
+    return result
 
 
 def parse_smtlib2_underscore_bv_literal_term(parsed_sexp, sort_ctx: sorts.SortContext) -> ast.LiteralASTNode:
@@ -403,21 +410,25 @@ def parse_smtlib2_problem(parsed_sexp):
         elif command == "declare-fun":
             ast_node, fun_signature = parse_cmd_declare_fun(sexp, sort_context)
             problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
+            problem_toplevel_function_scope.add_declaration(ast_node.get_fun_name(), ast_node)
             return ast_node
 
         elif command == "declare-const":
             ast_node, fun_signature = parse_cmd_declare_const(sexp, sort_context)
             problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
+            problem_toplevel_function_scope.add_declaration(ast_node.get_fun_name(), ast_node)
             return ast_node
 
         elif command == "define-fun":
             ast_node, fun_signature = parse_cmd_define_fun(sexp, sort_context, problem_toplevel_function_scope)
             problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
+            problem_toplevel_function_scope.add_declaration(ast_node.get_fun_name(), ast_node)
             return ast_node
 
         elif command == "define-const":
             ast_node, fun_signature = parse_cmd_define_const(sexp, sort_context, problem_toplevel_function_scope)
             problem_toplevel_function_scope.add_signature(ast_node.get_fun_name(), fun_signature)
+            problem_toplevel_function_scope.add_declaration(ast_node.get_fun_name(), ast_node)
             return ast_node
 
         elif command == "set-logic":
