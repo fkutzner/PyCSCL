@@ -1,5 +1,5 @@
 import abc
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, Union
 import examples.smt_qfbv_solver.sorts as sorts
 
 
@@ -305,82 +305,34 @@ class LiteralASTNode(TermASTNode):
         return self.__class__.__name__ + " Literal: " + str(self.__literal) + " Sort: " + str(self.__sort)
 
 
-class FunctionApplicationASTNode(TermASTNode):
-    """AST node class for terms representing a function application."""
-
-    def __init__(self, fname, argument_nodes, sort, parameters: Tuple[int] = tuple()):
-        """
-        Initializes the FunctionApplicationASTNode object.
-
-        :param fname: The function name.
-        :param argument_nodes: The AST nodes of the function arguments.
-        :param sort: The function's range sort.
-        :param parameters: The function's parameters (i.e. the sequence of numerals in (_ fname num1 num2 ... numN)
-                           expressions). If the function is not parametrized, this argument is required to be the
-                           empty tuple.
-        """
-        self.__sort = sort
-        self.__argument_nodes = argument_nodes
-        self.__fname = fname
-        self.__parameters = parameters
-
-    def get_sort(self):
-        return self.__sort
-
-    def get_child_nodes(self):
-        return tuple(self.__argument_nodes)
-
-    def set_child_node(self, index: int, node: ASTNode):
-        if index < 0 or index >= len(self.__argument_nodes):
-            raise ValueError("index " + str(index) + " out of bounds")
-        self.__argument_nodes[index] = node
-
-    def get_parameters(self):
-        """
-        Returns the function's parameters, i.e. the sequence of numerals in (_ fname num1 num2 ... numN) expressions.
-        If the function is not parametrized, the empty tuple is returned instead.
-
-        :return: the function's parameters as described above.
-        """
-        return self.__parameters
-
-    def get_function_name(self):
-        """
-        Returns the applied function's name.
-
-        :return: the applied function's name.
-        """
-        return self.__fname
-
-    def set_function_name(self, name: str):
-        """
-        Sets the applied function's name.
-
-        :param name: the applied function's new name.
-        :return: None
-        """
-        self.__fname = name
-
-    def __str__(self):
-        result = self.__class__.__name__ + " Function: " + self.__fname + " Sort: " + str(self.__sort)
-        if len(self.__parameters) != 0:
-            result += " Parameters: " + str(self.__parameters)
-        return result
-
-
 class LetTermASTNode(TermASTNode):
     """AST node class for let terms"""
 
-    def __init__(self, pairs_of_symbols_and_defining_terms, enclosed_term: TermASTNode):
+    def __init__(self):
         """
         Initializes the LetTermASTNode object.
+        """
+
+        self.__pairs_of_symbols_and_defining_terms = None
+        self.__enclosed_term = None
+
+    def set_definitions(self, pairs_of_symbols_and_defining_terms):
+        """
+        Sets the let statement's definitions.
 
         :param pairs_of_symbols_and_defining_terms: a sequence of pairs (x,y) with x being a constant name and y being
                                                     the term defining the constant named by x.
-        :param enclosed_term: the term defining the value of the let statement.
+        :return: None
         """
+        self.__pairs_of_symbols_and_defining_terms = pairs_of_symbols_and_defining_terms
 
-        self.__pairs_of_symbols_and_defining_terms = list(pairs_of_symbols_and_defining_terms)
+    def set_enclosed_term(self, enclosed_term):
+        """
+        Sets the let statement's enclosed term.
+
+        :param enclosed_term: the term defining the value of the let statement.
+        :return: None
+        """
         self.__enclosed_term = enclosed_term
 
     def get_child_nodes(self):
@@ -417,3 +369,82 @@ class LetTermASTNode(TermASTNode):
 
     def __str__(self):
         return self.__class__.__name__ + " Symbols: " + str([x[0] for x in self.__pairs_of_symbols_and_defining_terms])
+
+
+class FunctionApplicationASTNode(TermASTNode):
+    """AST node class for terms representing a function application."""
+
+    def __init__(self, fname, argument_nodes, sort, parameters: Tuple[int] = tuple(),
+                 declaration: Union[DeclareFunCommandASTNode,
+                                    DefineFunCommandASTNode,
+                                    LetTermASTNode,
+                                    type(None)] = None):
+        """
+        Initializes the FunctionApplicationASTNode object.
+
+        :param fname: The function name.
+        :param argument_nodes: The AST nodes of the function arguments.
+        :param sort: The function's range sort.
+        :param parameters: The function's parameters (i.e. the sequence of numerals in (_ fname num1 num2 ... numN)
+                           expressions). If the function is not parametrized, this argument is required to be the
+                           empty tuple.
+        :param declaration: The function's declaring AST node, or None if no such node exists.
+        """
+        self.__sort = sort
+        self.__argument_nodes = argument_nodes
+        self.__fname = fname
+        self.__parameters = parameters
+        self.__declaration = declaration
+
+    def get_sort(self):
+        return self.__sort
+
+    def get_child_nodes(self):
+        return tuple(self.__argument_nodes)
+
+    def set_child_node(self, index: int, node: ASTNode):
+        if index < 0 or index >= len(self.__argument_nodes):
+            raise ValueError("index " + str(index) + " out of bounds")
+        self.__argument_nodes[index] = node
+
+    def get_parameters(self):
+        """
+        Returns the function's parameters, i.e. the sequence of numerals in (_ fname num1 num2 ... numN) expressions.
+        If the function is not parametrized, the empty tuple is returned instead.
+
+        :return: the function's parameters as described above.
+        """
+        return self.__parameters
+
+    def get_function_name(self):
+        """
+        Returns the applied function's name.
+
+        :return: the applied function's name.
+        """
+        return self.__fname
+
+    def get_declaration(self) -> Union[DeclareFunCommandASTNode,
+                                       DefineFunCommandASTNode,
+                                       LetTermASTNode,
+                                       type(None)]:
+        """
+        Gets the function's declaration AST node, or None if no such node exists.
+        :return: the function's declaration AST node, or None if no such node exists.
+        """
+        return self.__declaration
+
+    def set_function_name(self, name: str):
+        """
+        Sets the applied function's name.
+
+        :param name: the applied function's new name.
+        :return: None
+        """
+        self.__fname = name
+
+    def __str__(self):
+        result = self.__class__.__name__ + " Function: " + self.__fname + " Sort: " + str(self.__sort)
+        if len(self.__parameters) != 0:
+            result += " Parameters: " + str(self.__parameters)
+        return result
