@@ -1,6 +1,7 @@
 import unittest
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.syntactic_scope as synscope
+import examples.smt_qfbv_solver.ast as ast
 
 
 class TestSyntacticFunctionScope(unittest.TestCase):
@@ -10,12 +11,15 @@ class TestSyntacticFunctionScope(unittest.TestCase):
                                          1, True)
         under_test = synscope.SyntacticFunctionScope(None)
         under_test.add_signature("foo", sig)
+        decl = ast.DeclareFunCommandASTNode("foo", [sort_ctx.get_bv_sort(2)], sort_ctx.get_int_sort())
+        under_test.add_declaration("foo", decl)
 
         lookup_result = under_test.get_signature("foo")
         assert lookup_result is not None
         result_sig, result_name = lookup_result
         assert result_sig is sig
         assert result_name == "foo"
+        assert under_test.get_declaration("foo") is decl
 
     def test_queries_parent_scope(self):
         sort_ctx = sorts.SortContext()
@@ -24,12 +28,15 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         parent = synscope.SyntacticFunctionScope(None)
         under_test = synscope.SyntacticFunctionScope(parent)
         parent.add_signature("foo", sig)
+        decl = ast.DeclareFunCommandASTNode("foo", [sort_ctx.get_bv_sort(2)], sort_ctx.get_int_sort())
+        parent.add_declaration("foo", decl)
 
         lookup_result = under_test.get_signature("foo")
         assert lookup_result is not None
         result_sig, result_name = lookup_result
         assert result_sig is sig
         assert result_name == "foo"
+        assert under_test.get_declaration("foo") is decl
 
     def test_set_parent_scope(self):
         sort_ctx = sorts.SortContext()
@@ -39,12 +46,15 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         under_test = synscope.SyntacticFunctionScope(None)
         under_test.set_parent(parent)
         parent.add_signature("foo", sig)
+        decl = ast.DeclareFunCommandASTNode("foo", [sort_ctx.get_bv_sort(2)], sort_ctx.get_int_sort())
+        parent.add_declaration("foo", decl)
 
         lookup_result = under_test.get_signature("foo")
         assert lookup_result is not None
         result_sig, result_name = lookup_result
         assert result_sig is sig
         assert result_name == "foo"
+        assert under_test.get_declaration("foo") is decl
 
     def test_get_parent_scope(self):
         parent = synscope.SyntacticFunctionScope(None)

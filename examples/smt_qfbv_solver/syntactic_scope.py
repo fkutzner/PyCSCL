@@ -1,4 +1,5 @@
 from typing import Union, Tuple
+import examples.smt_qfbv_solver.ast as ast
 
 
 class FunctionSignature:
@@ -73,6 +74,7 @@ class SyntacticFunctionScope:
         """
         self.__parent = parent_scope
         self.__signatures = dict()
+        self.__declarations = dict()
 
     def get_signature(self, func_name: str) -> Union[Tuple[FunctionSignature, str], type(None)]:
         """
@@ -92,19 +94,51 @@ class SyntacticFunctionScope:
         else:
             return None
 
+    def get_declaration(self, func_name: str) -> Union[ast.DeclareFunCommandASTNode,
+                                                       ast.DefineFunCommandASTNode,
+                                                       ast.LetTermASTNode,
+                                                       type(None)]:
+        """
+        Gets the AST node declaring a given function.
+
+        :param func_name: The function's name.
+        :return: The AST node declaring a given function, or None if no such node exists.
+        """
+        if func_name in self.__declarations.keys():
+            assert func_name in self.__signatures.keys()
+            return self.__declarations[func_name]
+        elif self.__parent is not None:
+            return self.__parent.get_declaration(func_name)
+        else:
+            return None
+
     def add_signature(self, func_name: str, signature: FunctionSignature):
         """
         Adds a function signature to the scope.
 
-        :param func_name: The function's name.
+        :param func_name: The function's name. No same-named signature must have previously been added to the scope.
         :param signature: The function's signature.
         :return: None
         :raises ValueError if adding a function named func_name is prevented by the existence of a same-named,
                            unshadowable function in this scope.
         """
+        assert func_name not in self.__signatures.keys()
         if self.has_unshadowable_signature(func_name):
             raise ValueError("Function " + func_name + " cannot be redefined or shadowed")
         self.__signatures[func_name] = (signature, func_name)
+
+    def add_declaration(self, func_name: str, declaration: Union[ast.DeclareFunCommandASTNode,
+                                                                 ast.DefineFunCommandASTNode,
+                                                                 ast.LetTermASTNode]):
+        """
+        Adds a function declaration to the scope.
+
+        :param func_name: The function's name. A signature must have been registered with this scope for this function.
+        :param declaration: The function's declaration.
+        :return: None
+        """
+        assert func_name in self.__signatures.keys()
+        self.__declarations[func_name] = declaration
 
     def has_unshadowable_signature(self, func_name):
         """
