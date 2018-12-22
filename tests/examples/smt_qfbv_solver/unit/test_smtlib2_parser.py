@@ -334,6 +334,26 @@ class TestParseSmtlib2Term(unittest.TestCase):
         actual_tree = "\n" + result.tree_to_string(12)
         assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
 
+    def test_parse_let_term_with_shadowing(self):
+        sort_ctx = sorts.SortContext()
+        fun_scope = smt.SyntacticFunctionScope(None)
+
+        result = smt.parse_smtlib2_term(["let", [["x", "#b11"], ["y", "#b10"]],
+                                         ["let", [["x", "#b111"], ["y", "x"]],
+                                          "y"]],
+                                        sort_ctx, fun_scope)
+        expected_tree = """
+            LetTermASTNode Symbols: ['x', 'y']
+              LiteralASTNode Literal: 3 Sort: (_ BitVec 2)
+              LiteralASTNode Literal: 2 Sort: (_ BitVec 2)
+              LetTermASTNode Symbols: ['x', 'y']
+                LiteralASTNode Literal: 7 Sort: (_ BitVec 3)
+                FunctionApplicationASTNode Function: x Sort: (_ BitVec 2)
+                FunctionApplicationASTNode Function: y Sort: (_ BitVec 2)"""
+
+        actual_tree = "\n" + result.tree_to_string(12)
+        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+
     def test_fails_for_malformed_let_statement(self):
         sort_ctx = sorts.SortContext()
         fun_scope = smt.SyntacticFunctionScope(None)
