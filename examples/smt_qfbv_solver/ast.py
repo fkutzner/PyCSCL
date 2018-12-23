@@ -39,6 +39,131 @@ class ASTNode(abc.ABC):
         return result
 
 
+class FunctionSignature:
+    """
+    A function signature.
+    """
+
+    def __init__(self, domain_sorts_to_range_sort_fn, arity: int, is_shadowable: bool, num_parameters: int = 0):
+        """
+        Initializes the FunctionSignature object.
+
+        :param domain_sorts_to_range_sort_fn: The function determining the represented function's signature.
+                                              For Sort objects s1, ..., sN, domain_sorts_to_range_sort_fn((s1, ..., sN))
+                                              returns the function's range sort for parameter sorts s1, ..., sN;
+                                              If s1, ..., sN is not part of the function's domain, None is returned.
+        :param arity: The function's arity.
+        :param is_shadowable: True iff the function may be shadowed and may shadow other functions; False otherwise.
+        :param num_parameters: The non-negative number of the function's parameters. If the function is not
+                               parametrized, num_parameters must be 0.
+        """
+        self.__dtr_fun = domain_sorts_to_range_sort_fn
+        self.__arity = arity
+        self.__is_shadowable = is_shadowable
+        self.__num_parameters = num_parameters
+
+    def get_range_sort(self, domain_sorts):
+        """
+        Gets the function's range sort for domain sorts s1, ..., sN.
+
+        :param domain_sorts: The query's domain sorts.
+        :return: The corresponding range sort, or None domain_sorts is not part of the function's domain.
+        """
+        return self.__dtr_fun(domain_sorts)
+
+    def get_arity(self):
+        """
+        Gets the function's arity.
+
+        :return: The function's arity.
+        """
+        return self.__arity
+
+    def get_num_parameters(self):
+        """
+        Gets the number of the function's numeral parameters.
+
+        This value is used to reflect the number N of parameters a function F has in a (_ F <p0> <p1> ... <pN>) term.
+
+        :return: the number of the function's numeral parameters.
+        """
+        return self.__num_parameters
+
+    def is_shadowable(self):
+        """
+        Returns True iff the function may be shadowed and may shadow other function declarations.
+
+        :return: True iff the function may be shadowed and may shadow other function declarations.
+        """
+        return self.__is_shadowable
+
+
+class FunctionDeclaration:
+    """
+    A function declaration.
+    """
+
+    def __init__(self, name: str, signature: FunctionSignature, declaring_ast_node: ASTNode = None):
+        """
+        Initializes the FunctionDeclaration object.
+
+        :param name: The function's name.
+        :param signature: The function's signature.
+        :param declaring_ast_node: The AST node declaring the function, or None if no such node exists.
+        """
+        self.__name = name
+        self.__sig = signature
+        self.__decl_node = declaring_ast_node
+
+    def set_name(self, name: str):
+        """
+        Sets the function's name.
+
+        :param name: The function's name.
+        :return: None
+        """
+        self.__name = name
+
+    def get_name(self) -> str:
+        """
+        Gets the function's name.
+
+        :return: The function's name.
+        """
+        return self.__name
+
+    def set_signature(self, signature: FunctionSignature):
+        """
+        Sets the function's signature.
+
+        :param signature: The function's signature.
+        :return: None
+        """
+        self.__sig = signature
+
+    def get_signature(self) -> FunctionSignature:
+        """
+        Gets the function's signature.
+        :return: The function's signature.
+        """
+        return self.__sig
+
+    def set_declaring_ast_node(self, declaring_ast_node: ASTNode):
+        """
+        Sets the function's declaring AST node.
+        :param declaring_ast_node: The function's declaring AST node.
+        :return: None
+        """
+        self.__decl_node = declaring_ast_node
+
+    def get_declaring_ast_node(self) -> Union[ASTNode, type(None)]:
+        """
+        Gets the function's declaring AST node.
+        :return:  The function's declaring AST node, or None if no such node exists.
+        """
+        return self.__decl_node
+
+
 class CommandASTNode(ASTNode, abc.ABC):
     """Base class for Command AST nodes."""
     pass

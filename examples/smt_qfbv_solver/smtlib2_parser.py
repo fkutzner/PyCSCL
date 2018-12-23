@@ -3,7 +3,8 @@ import re
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.ast as ast
 import examples.smt_qfbv_solver.theories as theories
-from examples.smt_qfbv_solver.syntactic_scope import SyntacticFunctionScope, FunctionSignature, FunctionDeclaration
+from examples.smt_qfbv_solver.syntactic_scope import SyntacticFunctionScope
+from examples.smt_qfbv_solver.ast import FunctionSignature, FunctionDeclaration
 
 
 def parse_smtlib2_literal(lit_string: str, sort_ctx: sorts.SortContext) -> Union[ast.LiteralASTNode, type(None)]:

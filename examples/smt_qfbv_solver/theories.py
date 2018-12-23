@@ -1,6 +1,7 @@
 import abc
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.syntactic_scope as synscope
+import examples.smt_qfbv_solver.ast as ast
 
 
 class TheorySyntacticFunctionScopeFactory(abc.ABC):
@@ -34,10 +35,10 @@ class CoreSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
                 return sort_ctx.get_bool_sort()
             return None
 
-        comp_signature = synscope.FunctionSignature(__comp_sig_fn, 2, False)
+        comp_signature = ast.FunctionSignature(__comp_sig_fn, 2, False)
 
-        target.add_declaration(synscope.FunctionDeclaration("=", comp_signature))
-        target.add_declaration(synscope.FunctionDeclaration("distinct", comp_signature))
+        target.add_declaration(ast.FunctionDeclaration("=", comp_signature))
+        target.add_declaration(ast.FunctionDeclaration("distinct", comp_signature))
 
     @staticmethod
     def __add_ite_fn(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
@@ -45,7 +46,7 @@ class CoreSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
             if len(x) == 3 and x[0] is sort_ctx.get_bool_sort() and (x[1] is x[2]):
                 return x[1]
             return None
-        target.add_declaration(synscope.FunctionDeclaration("ite", synscope.FunctionSignature(__ite_sig_fn, 3, False)))
+        target.add_declaration(ast.FunctionDeclaration("ite", ast.FunctionSignature(__ite_sig_fn, 3, False)))
 
     @staticmethod
     def __add_not_fn(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
@@ -54,7 +55,7 @@ class CoreSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
                 return sort_ctx.get_bool_sort()
             return None
 
-        target.add_declaration(synscope.FunctionDeclaration("not", synscope.FunctionSignature(__not_sig_fn, 1, False)))
+        target.add_declaration(ast.FunctionDeclaration("not", ast.FunctionSignature(__not_sig_fn, 1, False)))
 
     @staticmethod
     def __add_binary_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
@@ -63,21 +64,21 @@ class CoreSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
                 return sort_ctx.get_bool_sort()
             return None
 
-        binary_bool_signature = synscope.FunctionSignature(__binary_bool_sig_fn, 2, False)
+        binary_bool_signature = ast.FunctionSignature(__binary_bool_sig_fn, 2, False)
 
-        target.add_declaration(synscope.FunctionDeclaration("=>", binary_bool_signature))
-        target.add_declaration(synscope.FunctionDeclaration("and", binary_bool_signature))
-        target.add_declaration(synscope.FunctionDeclaration("or", binary_bool_signature))
-        target.add_declaration(synscope.FunctionDeclaration("xor", binary_bool_signature))
+        target.add_declaration(ast.FunctionDeclaration("=>", binary_bool_signature))
+        target.add_declaration(ast.FunctionDeclaration("and", binary_bool_signature))
+        target.add_declaration(ast.FunctionDeclaration("or", binary_bool_signature))
+        target.add_declaration(ast.FunctionDeclaration("xor", binary_bool_signature))
 
     @staticmethod
     def __add_constants(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __constant_bool_sig_fn(_):
             return sort_ctx.get_bool_sort()
-        target.add_declaration(synscope.FunctionDeclaration("true", synscope.FunctionSignature(__constant_bool_sig_fn,
-                                                                                               0, False)))
-        target.add_declaration(synscope.FunctionDeclaration("false", synscope.FunctionSignature(__constant_bool_sig_fn,
-                                                                                                0, False)))
+        target.add_declaration(ast.FunctionDeclaration("true", ast.FunctionSignature(__constant_bool_sig_fn,
+                                                                                     0, False)))
+        target.add_declaration(ast.FunctionDeclaration("false", ast.FunctionSignature(__constant_bool_sig_fn,
+                                                                                      0, False)))
 
     def create_syntactic_scope(self,
                                sort_ctx: sorts.SortContext) -> synscope.SyntacticFunctionScope:
@@ -102,8 +103,8 @@ class FixedSizeBVSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFacto
         def __concat_sig_fn(x):
             if len(x) == 2 and all(isinstance(z, sorts.BitvectorSort) for z in x):
                 return sort_ctx.get_bv_sort(x[0].get_len() + x[1].get_len())
-        target.add_declaration(synscope.FunctionDeclaration("concat",
-                                                            synscope.FunctionSignature(__concat_sig_fn, 2, False)))
+        target.add_declaration(ast.FunctionDeclaration("concat",
+                                                       ast.FunctionSignature(__concat_sig_fn, 2, False)))
 
     @staticmethod
     def __add_extract_fn(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
@@ -113,27 +114,27 @@ class FixedSizeBVSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFacto
                 if (x[2].get_len() > i) and (i >= j) and (j >= 0):
                     return sort_ctx.get_bv_sort(i - j + 1)
         decl = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("extract")
-        sig = synscope.FunctionSignature(__extract_sig_fn, 1, False, 2)
-        target.add_declaration(synscope.FunctionDeclaration(decl, sig))
+        sig = ast.FunctionSignature(__extract_sig_fn, 1, False, 2)
+        target.add_declaration(ast.FunctionDeclaration(decl, sig))
 
     @staticmethod
     def __add_bv_neg_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __neg_sig_fn(x):
             if len(x) == 1 and isinstance(x[0], sorts.BitvectorSort):
                 return sort_ctx.get_bv_sort(x[0].get_len())
-        neg_sig = synscope.FunctionSignature(__neg_sig_fn, 1, False)
-        target.add_declaration(synscope.FunctionDeclaration("bvneg", neg_sig))
-        target.add_declaration(synscope.FunctionDeclaration("bvnot", neg_sig))
+        neg_sig = ast.FunctionSignature(__neg_sig_fn, 1, False)
+        target.add_declaration(ast.FunctionDeclaration("bvneg", neg_sig))
+        target.add_declaration(ast.FunctionDeclaration("bvnot", neg_sig))
 
     @staticmethod
     def __add_bv_binary_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __binary_sig_fn(x):
             if len(x) == 2 and all(isinstance(z, sorts.BitvectorSort) for z in x) and x[0].get_len() == x[1].get_len():
                 return sort_ctx.get_bv_sort(x[0].get_len())
-        binary_sig = synscope.FunctionSignature(__binary_sig_fn, 2, False)
+        binary_sig = ast.FunctionSignature(__binary_sig_fn, 2, False)
 
         for name in ("bvand", "bvor", "bvadd", "bvmul", "bvudiv", "bvurem", "bvshl", "bvlshr"):
-            target.add_declaration(synscope.FunctionDeclaration(name, binary_sig))
+            target.add_declaration(ast.FunctionDeclaration(name, binary_sig))
 
     @staticmethod
     def __add_comparison_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
@@ -141,8 +142,8 @@ class FixedSizeBVSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFacto
             if len(x) == 2 and all(isinstance(z, sorts.BitvectorSort) for z in x) and x[0].get_len() == x[1].get_len():
                 return sort_ctx.get_bool_sort()
 
-        target.add_declaration(synscope.FunctionDeclaration("bvult",
-                                                            synscope.FunctionSignature(__comp_sig_fn, 2, False)))
+        target.add_declaration(ast.FunctionDeclaration("bvult",
+                                                       ast.FunctionSignature(__comp_sig_fn, 2, False)))
 
     def create_syntactic_scope(self,
                                sort_ctx: sorts.SortContext) -> synscope.SyntacticFunctionScope:
@@ -174,20 +175,20 @@ class QFBVExtSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
             if len(x) == 2 and all(isinstance(z, sorts.BitvectorSort) for z in x) and x[0].get_len() == x[1].get_len():
                 return sort_ctx.get_bv_sort(x[0].get_len())
 
-        binary_sig = synscope.FunctionSignature(__binary_sig_fn, 2, False)
+        binary_sig = ast.FunctionSignature(__binary_sig_fn, 2, False)
 
         for name in ("bvnand", "bvnor", "bvxor", "bvxnor", "bvcomp", "bvsub", "bvsdiv", "bvsrem", "bvsmod", "bvashr"):
-            target.add_declaration(synscope.FunctionDeclaration(name, binary_sig))
+            target.add_declaration(ast.FunctionDeclaration(name, binary_sig))
 
     @staticmethod
     def __add_comparison_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __comp_sig_fn(x):
             if len(x) == 2 and all(isinstance(z, sorts.BitvectorSort) for z in x) and x[0].get_len() == x[1].get_len():
                 return sort_ctx.get_bool_sort()
-        comp_sig = synscope.FunctionSignature(__comp_sig_fn, 2, False)
+        comp_sig = ast.FunctionSignature(__comp_sig_fn, 2, False)
 
         for name in ("bvule", "bvugt", "bvuge", "bvslt", "bvsle", "bvsgt", "bvsge"):
-            target.add_declaration(synscope.FunctionDeclaration(name, comp_sig))
+            target.add_declaration(ast.FunctionDeclaration(name, comp_sig))
 
     @staticmethod
     def __add_repeat_fn(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
@@ -195,30 +196,30 @@ class QFBVExtSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
             if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
                 return sort_ctx.get_bv_sort(x[0] * x[1].get_len())
         fname = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("repeat")
-        target.add_declaration(synscope.FunctionDeclaration(fname,
-                                                            synscope.FunctionSignature(__repeat_sig_fn, 1, False, 1)))
+        target.add_declaration(ast.FunctionDeclaration(fname,
+                                                       ast.FunctionSignature(__repeat_sig_fn, 1, False, 1)))
 
     @staticmethod
     def __add_extend_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __extend_sig_fn(x):
             if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
                 return sort_ctx.get_bv_sort(x[0] + x[1].get_len())
-        extend_sig = synscope.FunctionSignature(__extend_sig_fn, 1, False, 1)
+        extend_sig = ast.FunctionSignature(__extend_sig_fn, 1, False, 1)
         zero_extend_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("zero_extend")
         sign_extend_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("sign_extend")
-        target.add_declaration(synscope.FunctionDeclaration(zero_extend_name, extend_sig))
-        target.add_declaration(synscope.FunctionDeclaration(sign_extend_name, extend_sig))
+        target.add_declaration(ast.FunctionDeclaration(zero_extend_name, extend_sig))
+        target.add_declaration(ast.FunctionDeclaration(sign_extend_name, extend_sig))
 
     @staticmethod
     def __add_rotate_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __rotate_sig_fn(x):
             if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
                 return sort_ctx.get_bv_sort(x[1].get_len())
-        rotate_sig = synscope.FunctionSignature(__rotate_sig_fn, 1, False, 1)
+        rotate_sig = ast.FunctionSignature(__rotate_sig_fn, 1, False, 1)
         rl_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("rotate_left")
         rr_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("rotate_right")
-        target.add_declaration(synscope.FunctionDeclaration(rl_name, rotate_sig))
-        target.add_declaration(synscope.FunctionDeclaration(rr_name, rotate_sig))
+        target.add_declaration(ast.FunctionDeclaration(rl_name, rotate_sig))
+        target.add_declaration(ast.FunctionDeclaration(rr_name, rotate_sig))
 
     def create_syntactic_scope(self,
                                sort_ctx: sorts.SortContext) -> synscope.SyntacticFunctionScope:

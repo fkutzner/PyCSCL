@@ -163,7 +163,7 @@ class TestParseSmtlib2Term(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         fun_scope = smt.SyntacticFunctionScope(None)
         constant_signature = smt.FunctionSignature(create_constant_signature_fn(sort_ctx.get_int_sort()), 0, True)
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction", constant_signature))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction", constant_signature))
 
         result = smt.parse_smtlib2_term("foonction", sort_ctx, fun_scope)
         assert isinstance(result, ast.FunctionApplicationASTNode)
@@ -175,7 +175,7 @@ class TestParseSmtlib2Term(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         fun_scope = smt.SyntacticFunctionScope(None)
         constant_signature = smt.FunctionSignature(create_constant_signature_fn(sort_ctx.get_int_sort()), 0, True)
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction", constant_signature))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction", constant_signature))
 
         result = smt.parse_smtlib2_term(["foonction"], sort_ctx, fun_scope)
         assert isinstance(result, ast.FunctionApplicationASTNode)
@@ -189,8 +189,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
 
         fun_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3), sort_ctx.get_int_sort()],
                                                         range_sort=sort_ctx.get_int_sort())
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(fun_signature_fn, 2, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(fun_signature_fn, 2, True)))
 
         result = smt.parse_smtlib2_term(["foonction", "#b100", "30"], sort_ctx, fun_scope)
         assert isinstance(result, ast.FunctionApplicationASTNode)
@@ -219,14 +219,14 @@ class TestParseSmtlib2Term(unittest.TestCase):
         threebitbv_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_int_sort()],
                                                                range_sort=sort_ctx.get_bv_sort(3))
         intthingy_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_int_sort()],
-                                                                  range_sort=sort_ctx.get_int_sort())
+                                                              range_sort=sort_ctx.get_int_sort())
 
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(foonction_signature_fn, 3, True)))
-        fun_scope.add_declaration(synscope.FunctionDeclaration("threebitbv",
-                                                               smt.FunctionSignature(threebitbv_signature_fn, 1, True)))
-        fun_scope.add_declaration(synscope.FunctionDeclaration("integerthingy",
-                                                               smt.FunctionSignature(intthingy_signature_fn, 1, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(foonction_signature_fn, 3, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("threebitbv",
+                                                          smt.FunctionSignature(threebitbv_signature_fn, 1, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("integerthingy",
+                                                          smt.FunctionSignature(intthingy_signature_fn, 1, True)))
 
         result = smt.parse_smtlib2_term(["foonction", "100", ["threebitbv", "5"], ["integerthingy", "1024"]],
                                         sort_ctx, fun_scope)
@@ -246,8 +246,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
 
         fun_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3), sort_ctx.get_int_sort()],
                                                         range_sort=sort_ctx.get_int_sort())
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(fun_signature_fn, 2, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(fun_signature_fn, 2, True)))
 
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term(["foonction", "#b100"], sort_ctx, fun_scope)
@@ -258,8 +258,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
 
         fun_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3), sort_ctx.get_int_sort()],
                                                         range_sort=sort_ctx.get_int_sort())
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(fun_signature_fn, 2, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(fun_signature_fn, 2, True)))
 
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term(["foonction", "1", "2"], sort_ctx, fun_scope)
@@ -269,8 +269,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         fun_scope = smt.SyntacticFunctionScope(None)
 
         fun_signature_fn = create_constant_signature_fn(range_sort=sort_ctx.get_int_sort())
-        fun_scope.add_declaration(synscope.FunctionDeclaration("fooconst",
-                                                               smt.FunctionSignature(fun_signature_fn, 2, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("fooconst",
+                                                          smt.FunctionSignature(fun_signature_fn, 2, True)))
 
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term(["fooconst", "1"], sort_ctx, fun_scope)
@@ -281,8 +281,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
 
         fun_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3)],
                                                         range_sort=sort_ctx.get_int_sort())
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(fun_signature_fn, 2, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(fun_signature_fn, 2, True)))
 
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term("foonction", sort_ctx, fun_scope)
@@ -293,8 +293,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
 
         foonction_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3)],
                                                               range_sort=sort_ctx.get_int_sort())
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(foonction_signature_fn, 1, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(foonction_signature_fn, 1, True)))
 
         result = smt.parse_smtlib2_term(["let", [], ["foonction", "#b111"]], sort_ctx, fun_scope)
         expected_tree = """
@@ -310,8 +310,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
 
         foonction_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3)],
                                                               range_sort=sort_ctx.get_int_sort())
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(foonction_signature_fn, 1, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(foonction_signature_fn, 1, True)))
 
         result = smt.parse_smtlib2_term(["let",
                                          [["x", "#b111"]],
@@ -331,8 +331,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         foonction_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3),
                                                                             sort_ctx.get_bv_sort(2)],
                                                               range_sort=sort_ctx.get_bv_sort(3))
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(foonction_signature_fn, 2, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(foonction_signature_fn, 2, True)))
 
         result = smt.parse_smtlib2_term(["let",
                                          [["x", "#b11"], ["y", ["foonction", "#b011", "#b10"]]],
@@ -376,8 +376,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         foonction_signature_fn = create_function_signature_fn(domain_sorts=[sort_ctx.get_bv_sort(3),
                                                                             sort_ctx.get_bv_sort(2)],
                                                               range_sort=sort_ctx.get_bv_sort(3))
-        fun_scope.add_declaration(synscope.FunctionDeclaration("foonction",
-                                                               smt.FunctionSignature(foonction_signature_fn, 2, True)))
+        fun_scope.add_declaration(ast.FunctionDeclaration("foonction",
+                                                          smt.FunctionSignature(foonction_signature_fn, 2, True)))
 
         with self.assertRaises(ValueError):
             smt.parse_smtlib2_term(["let", "#b1111"], sort_ctx, fun_scope)
@@ -400,8 +400,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
                 return None
             return sort_ctx.get_bv_sort(x[0] + x[1] + x[2].get_len())
 
-        decl = synscope.FunctionDeclaration(smt.SyntacticFunctionScope.mangle_parametrized_function_name("foonction"),
-                                            smt.FunctionSignature(foonction_signature_fn, 1, True))
+        decl = ast.FunctionDeclaration(smt.SyntacticFunctionScope.mangle_parametrized_function_name("foonction"),
+                                       smt.FunctionSignature(foonction_signature_fn, 1, True))
         fun_scope.add_declaration(decl)
 
         result = smt.parse_smtlib2_term([["_", "foonction", "11", "2"], "#b101"], sort_ctx, fun_scope)
@@ -421,8 +421,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
                 return None
             return sort_ctx.get_bv_sort(x[0] + x[1] + x[2].get_len())
 
-        decl = synscope.FunctionDeclaration(smt.SyntacticFunctionScope.mangle_parametrized_function_name("foonction"),
-                                            smt.FunctionSignature(foonction_signature_fn, 1, True))
+        decl = ast.FunctionDeclaration(smt.SyntacticFunctionScope.mangle_parametrized_function_name("foonction"),
+                                       smt.FunctionSignature(foonction_signature_fn, 1, True))
         fun_scope.add_declaration(decl)
 
         # Bad argument sort
