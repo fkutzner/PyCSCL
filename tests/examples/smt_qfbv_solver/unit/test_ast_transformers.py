@@ -155,4 +155,3 @@ class TestFunctionDefinitionInliner(unittest.TestCase):
                     FunctionApplicationASTNode Function: y Sort: Int"""
 
         self.__expect_ast(expected_ast, 12, under_test.transform(test_data))
-

@@ -12,8 +12,9 @@ class TestCoreSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
 
-        signature, lookup_name = scope.get_signature(name)
-        assert lookup_name == name
+        decl = scope.get_declaration(name)
+        assert decl.get_name() == name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 2
 
@@ -25,7 +26,8 @@ class TestCoreSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.CoreSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature(name)
+        decl = scope.get_declaration(name)
+        signature = decl.get_signature()
         assert signature.get_range_sort([sort_ctx.get_bv_sort(2), sort_ctx.get_bv_sort(1)]) is None
         assert signature.get_range_sort([sort_ctx.get_int_sort(), sort_ctx.get_bv_sort(1)]) is None
         assert signature.get_range_sort([sort_ctx.get_int_sort(), sort_ctx.get_bool_sort()]) is None
@@ -47,8 +49,9 @@ class TestCoreSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
 
-        signature, name = scope.get_signature("not")
-        assert name == "not"
+        decl = scope.get_declaration("not")
+        assert decl.get_name() == "not"
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 1
 
@@ -58,7 +61,8 @@ class TestCoreSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.CoreSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature("not")
+        decl = scope.get_declaration("not")
+        signature = decl.get_signature()
         assert signature.get_range_sort([sort_ctx.get_bv_sort(2)]) is None
         assert signature.get_range_sort([sort_ctx.get_int_sort()]) is None
 
@@ -68,8 +72,9 @@ class TestCoreSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
 
-        signature, lookup_name = scope.get_signature(name)
-        assert lookup_name == name
+        decl = scope.get_declaration(name)
+        assert decl.get_name() == name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 2
 
@@ -81,7 +86,8 @@ class TestCoreSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.CoreSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature(name)
+        decl = scope.get_declaration(name)
+        signature = decl.get_signature()
         assert signature.get_range_sort([sort_ctx.get_bv_sort(2), sort_ctx.get_bv_sort(2)]) is None
         assert signature.get_range_sort([sort_ctx.get_int_sort(), sort_ctx.get_bool_sort()]) is None
 
@@ -114,14 +120,16 @@ class TestCoreSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
 
-        signature, name = scope.get_signature("true")
-        assert name == "true"
+        decl = scope.get_declaration("true")
+        assert decl.get_name() == "true"
+        signature = decl.get_signature()
         assert signature.get_arity() == 0
         assert signature.get_num_parameters() == 0
         assert signature.get_range_sort([]) is sort_ctx.get_bool_sort()
 
-        signature, name = scope.get_signature("false")
-        assert name == "false"
+        decl = scope.get_declaration("false")
+        assert decl.get_name() == "false"
+        signature = decl.get_signature()
         assert signature.get_arity() == 0
         assert signature.get_num_parameters() == 0
         assert signature.get_range_sort([]) is sort_ctx.get_bool_sort()
@@ -132,9 +140,10 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.FixedSizeBVSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, lookup_name = scope.get_signature("concat")
+        decl = scope.get_declaration("concat")
 
-        assert lookup_name == "concat"
+        assert decl.get_name() == "concat"
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 2
 
@@ -146,7 +155,8 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.FixedSizeBVSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature("concat")
+        decl = scope.get_declaration("concat")
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([sort_ctx.get_bv_sort(0), sort_ctx.get_bool_sort()]) is None
         assert signature.get_range_sort([sort_ctx.get_int_sort(), sort_ctx.get_bool_sort()]) is None
@@ -156,9 +166,10 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
         mangled_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("extract")
-        signature, lookup_name = scope.get_signature(mangled_name)
+        decl = scope.get_declaration(mangled_name)
 
-        assert lookup_name == mangled_name
+        assert decl.get_name() == mangled_name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 2
         assert signature.get_arity() == 1
 
@@ -172,7 +183,8 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
         mangled_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("extract")
-        signature, _ = scope.get_signature(mangled_name)
+        decl = scope.get_declaration(mangled_name)
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([3, 1, sort_ctx.get_int_sort()]) is None
         assert signature.get_range_sort([3, 1, sort_ctx.get_bool_sort()]) is None
@@ -183,9 +195,10 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.FixedSizeBVSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, lookup_name = scope.get_signature(name)
+        decl = scope.get_declaration(name)
 
-        assert lookup_name == name
+        assert decl.get_name() == name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 1
 
@@ -197,7 +210,8 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.FixedSizeBVSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature(name)
+        decl = scope.get_declaration(name)
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([sort_ctx.get_int_sort()]) is None
         assert signature.get_range_sort([sort_ctx.get_bool_sort()]) is None
@@ -219,9 +233,10 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.FixedSizeBVSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, lookup_name = scope.get_signature(name)
+        decl = scope.get_declaration(name)
 
-        assert lookup_name == name
+        assert decl.get_name() == name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 2
 
@@ -233,7 +248,8 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.FixedSizeBVSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature(name)
+        decl = scope.get_declaration(name)
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([sort_ctx.get_int_sort(), sort_ctx.get_int_sort()]) is None
         assert signature.get_range_sort([sort_ctx.get_bool_sort(), sort_ctx.get_int_sort()]) is None
@@ -290,9 +306,10 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.FixedSizeBVSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, lookup_name = scope.get_signature("bvult")
+        decl = scope.get_declaration("bvult")
 
-        assert lookup_name == "bvult"
+        assert decl.get_name() == "bvult"
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 2
 
@@ -304,7 +321,8 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.FixedSizeBVSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature("bvult")
+        decl = scope.get_declaration("bvult")
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([sort_ctx.get_bv_sort(1), sort_ctx.get_bool_sort()]) is None
         assert signature.get_range_sort([sort_ctx.get_bv_sort(1), sort_ctx.get_bv_sort(2)]) is None
@@ -317,9 +335,10 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.QFBVExtSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, lookup_name = scope.get_signature(name)
+        decl = scope.get_declaration(name)
 
-        assert lookup_name == name
+        assert decl.get_name() == name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 2
 
@@ -331,7 +350,8 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.QFBVExtSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature(name)
+        decl = scope.get_declaration(name)
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([sort_ctx.get_int_sort(), sort_ctx.get_int_sort()]) is None
         assert signature.get_range_sort([sort_ctx.get_bool_sort(), sort_ctx.get_int_sort()]) is None
@@ -401,9 +421,10 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.QFBVExtSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, lookup_name = scope.get_signature(name)
+        decl = scope.get_declaration(name)
 
-        assert lookup_name == name
+        assert decl.get_name() == name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 0
         assert signature.get_arity() == 2
 
@@ -415,7 +436,8 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         under_test = theories.QFBVExtSyntacticFunctionScopeFactory()
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
-        signature, _ = scope.get_signature(name)
+        decl = scope.get_declaration(name)
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([sort_ctx.get_int_sort(), sort_ctx.get_int_sort()]) is None
         assert signature.get_range_sort([sort_ctx.get_bool_sort(), sort_ctx.get_int_sort()]) is None
@@ -467,9 +489,10 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
         name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("repeat")
-        signature, lookup_name = scope.get_signature(name)
+        decl = scope.get_declaration(name)
 
-        assert lookup_name == name
+        assert decl.get_name() == name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 1
         assert signature.get_arity() == 1
 
@@ -483,7 +506,8 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
         name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("repeat")
-        signature, _ = scope.get_signature(name)
+        decl = scope.get_declaration(name)
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([10, sort_ctx.get_bool_sort()]) is None
         assert signature.get_range_sort([1, sort_ctx.get_int_sort()]) is None
@@ -494,9 +518,10 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
         mangled_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name(name)
-        signature, lookup_name = scope.get_signature(mangled_name)
+        decl = scope.get_declaration(mangled_name)
 
-        assert lookup_name == mangled_name
+        assert decl.get_name() == mangled_name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 1
         assert signature.get_arity() == 1
 
@@ -509,7 +534,8 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
         mangled_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name(name)
-        signature, _ = scope.get_signature(mangled_name)
+        decl = scope.get_declaration(mangled_name)
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([1, sort_ctx.get_int_sort()]) is None
         assert signature.get_range_sort([1, sort_ctx.get_bool_sort()]) is None
@@ -532,9 +558,10 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
         mangled_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name(name)
-        signature, lookup_name = scope.get_signature(mangled_name)
+        decl = scope.get_declaration(mangled_name)
 
-        assert lookup_name == mangled_name
+        assert decl.get_name() == mangled_name
+        signature = decl.get_signature()
         assert signature.get_num_parameters() == 1
         assert signature.get_arity() == 1
 
@@ -547,7 +574,8 @@ class TestQFBVExtSyntacticFunctionScopeFactory(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         scope = under_test.create_syntactic_scope(sort_ctx)
         mangled_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name(name)
-        signature, _ = scope.get_signature(mangled_name)
+        decl = scope.get_declaration(mangled_name)
+        signature = decl.get_signature()
 
         assert signature.get_range_sort([1, sort_ctx.get_int_sort()]) is None
         assert signature.get_range_sort([1, sort_ctx.get_bool_sort()]) is None

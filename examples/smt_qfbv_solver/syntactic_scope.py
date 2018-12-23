@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union
 import examples.smt_qfbv_solver.ast as ast
 
 
@@ -61,6 +61,72 @@ class FunctionSignature:
         return self.__is_shadowable
 
 
+class FunctionDeclaration:
+    """
+    A function declaration.
+    """
+
+    def __init__(self, name: str, signature: FunctionSignature, declaring_ast_node: ast.ASTNode = None):
+        """
+        Initializes the FunctionDeclaration object.
+
+        :param name: The function's name.
+        :param signature: The function's signature.
+        :param declaring_ast_node: The AST node declaring the function, or None if no such node exists.
+        """
+        self.__name = name
+        self.__sig = signature
+        self.__decl_node = declaring_ast_node
+
+    def set_name(self, name: str):
+        """
+        Sets the function's name.
+
+        :param name: The function's name.
+        :return: None
+        """
+        self.__name = name
+
+    def get_name(self) -> str:
+        """
+        Gets the function's name.
+
+        :return: The function's name.
+        """
+        return self.__name
+
+    def set_signature(self, signature: FunctionSignature):
+        """
+        Sets the function's signature.
+
+        :param signature: The function's signature.
+        :return: None
+        """
+        self.__sig = signature
+
+    def get_signature(self) -> FunctionSignature:
+        """
+        Gets the function's signature.
+        :return: The function's signature.
+        """
+        return self.__sig
+
+    def set_declaring_ast_node(self, declaring_ast_node: ast.ASTNode):
+        """
+        Sets the function's declaring AST node.
+        :param declaring_ast_node: The function's declaring AST node.
+        :return: None
+        """
+        self.__decl_node = declaring_ast_node
+
+    def get_declaring_ast_node(self) -> Union[ast.ASTNode, type(None)]:
+        """
+        Gets the function's declaring AST node.
+        :return:  The function's declaring AST node, or None if no such node exists.
+        """
+        return self.__decl_node
+
+
 class SyntacticFunctionScope:
     """
     A scope of function declarations.
@@ -73,72 +139,41 @@ class SyntacticFunctionScope:
         :param parent_scope: The scope's parent scope. If the scope has no parent scope, this argument must be None.
         """
         self.__parent = parent_scope
-        self.__signatures = dict()
-        self.__declarations = dict()
+        self.__decls = dict()
 
-    def get_signature(self, func_name: str) -> Union[Tuple[FunctionSignature, str], type(None)]:
+    def get_declaration(self, func_name: str) -> Union[FunctionDeclaration, type(None)]:
         """
-        Gets the function signature for a function.
+        Gets the declaration of a function.
 
-        If this scope does not contain a matching function signature and this scope has
-        a parent scope, the parent scope is queried for a function signature for func_name.
+        If this scope does not contain a matching function declaration and this scope has
+        a parent scope, the parent scope is queried for a function declaration for func_name.
 
         :param func_name: The function's name.
-        :return: If the scope has no function with name func_name, None is returned. Otherwise, a tuple (f,n) is
-                 returned with f being the function's signature and n being the function's name.
+        :return: If the scope has no function with name func_name, None is returned. Otherwise, the function's
+                 declaration is returned.
         """
-        if func_name in self.__signatures.keys():
-            return self.__signatures[func_name]
-        elif self.__parent is not None:
-            return self.__parent.get_signature(func_name)
-        else:
-            return None
-
-    def get_declaration(self, func_name: str) -> Union[ast.DeclareFunCommandASTNode,
-                                                       ast.DefineFunCommandASTNode,
-                                                       ast.LetTermASTNode,
-                                                       type(None)]:
-        """
-        Gets the AST node declaring a given function.
-
-        :param func_name: The function's name.
-        :return: The AST node declaring a given function, or None if no such node exists.
-        """
-        if func_name in self.__declarations.keys():
-            assert func_name in self.__signatures.keys()
-            return self.__declarations[func_name]
+        if func_name in self.__decls.keys():
+            return self.__decls[func_name]
         elif self.__parent is not None:
             return self.__parent.get_declaration(func_name)
         else:
             return None
 
-    def add_signature(self, func_name: str, signature: FunctionSignature):
-        """
-        Adds a function signature to the scope.
-
-        :param func_name: The function's name. No same-named signature must have previously been added to the scope.
-        :param signature: The function's signature.
-        :return: None
-        :raises ValueError if adding a function named func_name is prevented by the existence of a same-named,
-                           unshadowable function in this scope.
-        """
-        assert func_name not in self.__signatures.keys()
-        if self.has_unshadowable_signature(func_name):
-            raise ValueError("Function " + func_name + " cannot be redefined or shadowed")
-        self.__signatures[func_name] = (signature, func_name)
-
-    def add_declaration(self, func_name: str, declaration: Union[ast.DeclareFunCommandASTNode,
-                                                                 ast.DefineFunCommandASTNode,
-                                                                 ast.LetTermASTNode]):
+    def add_declaration(self, declaration: FunctionDeclaration):
         """
         Adds a function declaration to the scope.
 
-        :param func_name: The function's name. A signature must have been registered with this scope for this function.
-        :param declaration: The function's declaration.
+        :param declaration: The function's declaration. No same-named signature must have previously been added to the
+                            scope.
         :return: None
+        :raises ValueError if adding a function named func_name is prevented by the existence of a same-named,
+                           unshadowable function declaration in this scope.
         """
-        assert func_name in self.__signatures.keys()
-        self.__declarations[func_name] = declaration
+        func_name = declaration.get_name()
+        assert func_name not in self.__decls.keys()
+        if self.has_unshadowable_signature(func_name):
+            raise ValueError("Function " + func_name + " cannot be redefined or shadowed")
+        self.__decls[func_name] = declaration
 
     def has_unshadowable_signature(self, func_name):
         """
@@ -147,11 +182,11 @@ class SyntacticFunctionScope:
         :param func_name: The function's name.
         :return: True iff the given function name is associated with an unshadowable function.
         """
-        func_signature = self.get_signature(func_name)
-        if func_signature is None:
+        func_decl = self.get_declaration(func_name)
+        if func_decl is None:
             return False
         else:
-            return not func_signature[0].is_shadowable()
+            return not func_decl.get_signature().is_shadowable()
 
     def set_parent(self, new_parent):
         """

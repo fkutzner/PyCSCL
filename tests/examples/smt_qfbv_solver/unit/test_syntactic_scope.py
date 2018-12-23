@@ -1,7 +1,6 @@
 import unittest
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.syntactic_scope as synscope
-import examples.smt_qfbv_solver.ast as ast
 
 
 class TestSyntacticFunctionScope(unittest.TestCase):
@@ -9,52 +8,40 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         sig = synscope.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,
                                          1, True)
-        under_test = synscope.SyntacticFunctionScope(None)
-        under_test.add_signature("foo", sig)
-        decl = ast.DeclareFunCommandASTNode("foo", [sort_ctx.get_bv_sort(2)], sort_ctx.get_int_sort())
-        under_test.add_declaration("foo", decl)
+        decl = synscope.FunctionDeclaration("foo", sig)
 
-        lookup_result = under_test.get_signature("foo")
-        assert lookup_result is not None
-        result_sig, result_name = lookup_result
-        assert result_sig is sig
-        assert result_name == "foo"
-        assert under_test.get_declaration("foo") is decl
+        under_test = synscope.SyntacticFunctionScope(None)
+        under_test.add_declaration(decl)
+
+        lookup_result = under_test.get_declaration("foo")
+        assert lookup_result is decl
 
     def test_queries_parent_scope(self):
         sort_ctx = sorts.SortContext()
         sig = synscope.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,
                                          1, True)
+        decl = synscope.FunctionDeclaration("foo", sig)
+
         parent = synscope.SyntacticFunctionScope(None)
         under_test = synscope.SyntacticFunctionScope(parent)
-        parent.add_signature("foo", sig)
-        decl = ast.DeclareFunCommandASTNode("foo", [sort_ctx.get_bv_sort(2)], sort_ctx.get_int_sort())
-        parent.add_declaration("foo", decl)
+        parent.add_declaration(decl)
 
-        lookup_result = under_test.get_signature("foo")
-        assert lookup_result is not None
-        result_sig, result_name = lookup_result
-        assert result_sig is sig
-        assert result_name == "foo"
-        assert under_test.get_declaration("foo") is decl
+        lookup_result = under_test.get_declaration("foo")
+        assert lookup_result is decl
 
     def test_set_parent_scope(self):
         sort_ctx = sorts.SortContext()
         sig = synscope.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,
                                          1, True)
+        decl = synscope.FunctionDeclaration("foo", sig)
+
         parent = synscope.SyntacticFunctionScope(None)
         under_test = synscope.SyntacticFunctionScope(None)
         under_test.set_parent(parent)
-        parent.add_signature("foo", sig)
-        decl = ast.DeclareFunCommandASTNode("foo", [sort_ctx.get_bv_sort(2)], sort_ctx.get_int_sort())
-        parent.add_declaration("foo", decl)
+        parent.add_declaration(decl)
 
-        lookup_result = under_test.get_signature("foo")
-        assert lookup_result is not None
-        result_sig, result_name = lookup_result
-        assert result_sig is sig
-        assert result_name == "foo"
-        assert under_test.get_declaration("foo") is decl
+        lookup_result = under_test.get_declaration("foo")
+        assert lookup_result is decl
 
     def test_get_parent_scope(self):
         parent = synscope.SyntacticFunctionScope(None)
@@ -65,9 +52,11 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         sig = synscope.FunctionSignature(lambda x: sort_ctx.get_int_sort() if x == [sort_ctx.get_bv_sort(2)] else None,
                                          1, False)
+        decl = synscope.FunctionDeclaration("foo", sig)
+
         parent = synscope.SyntacticFunctionScope(None)
-        parent.add_signature("foo", sig)
+        parent.add_declaration(decl)
 
         under_test = synscope.SyntacticFunctionScope(parent)
         with self.assertRaises(ValueError):
-            under_test.add_signature("foo", sig)
+            under_test.add_declaration(decl)
