@@ -37,11 +37,8 @@ class FunctionDefinitionInliner(ASTTransformer):
         if len(parm_names) > 0:
             arg_terms = term.get_child_nodes()
             parm_bindings = zip(parm_names, arg_terms)
-            result = ast.LetTermASTNode()
-            result.set_definitions(list(parm_bindings))
             # Performing a deep copy in order to keep the AST a tree
-            result.set_enclosed_term(copy.deepcopy(defining_term))
-            return result
+            return ast.LetTermASTNode(list(parm_bindings), copy.deepcopy(defining_term))
         else:
             return copy.deepcopy(defining_term)
 

@@ -154,21 +154,24 @@ def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
 
     fun_scope_extension = SyntacticFunctionScope(fun_scope)
 
-    result = ast.LetTermASTNode()
     let_defs = []
+    var_decls = []
     for (x, y) in parsed_sexp[1]:
         name = parse_smtlib2_symbol(x)
         defining_term = parse_smtlib2_term(y, sort_ctx, fun_scope)
         const_sort = defining_term.get_sort()
         const_sig = (lambda const_sort_: FunctionSignature(lambda z: const_sort_ if len(z) == 0 else None,
                                                            0, True))(const_sort)
-        const_decl = FunctionDeclaration(name, const_sig, result)
+        const_decl = FunctionDeclaration(name, const_sig)
         fun_scope_extension.add_declaration(const_decl)
         let_defs.append((name, defining_term))
+        var_decls.append(const_decl)
 
     enclosed_term = parse_smtlib2_term(parsed_sexp[2], sort_ctx, fun_scope_extension)
-    result.set_definitions(let_defs)
-    result.set_enclosed_term(enclosed_term)
+    result = ast.LetTermASTNode(let_defs, enclosed_term)
+    for decl in var_decls:
+        decl.set_declaring_ast_node(result)
+
     return result
 
 

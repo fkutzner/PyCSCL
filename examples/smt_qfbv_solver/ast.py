@@ -433,31 +433,16 @@ class LiteralASTNode(TermASTNode):
 class LetTermASTNode(TermASTNode):
     """AST node class for let terms"""
 
-    def __init__(self):
+    def __init__(self, pairs_of_symbols_and_defining_terms, enclosed_term: TermASTNode):
         """
         Initializes the LetTermASTNode object.
-        """
-
-        self.__pairs_of_symbols_and_defining_terms = None
-        self.__enclosed_term = None
-
-    def set_definitions(self, pairs_of_symbols_and_defining_terms):
-        """
-        Sets the let statement's definitions.
 
         :param pairs_of_symbols_and_defining_terms: a sequence of pairs (x,y) with x being a constant name and y being
-                                                    the term defining the constant named by x.
-        :return: None
-        """
-        self.__pairs_of_symbols_and_defining_terms = pairs_of_symbols_and_defining_terms
-
-    def set_enclosed_term(self, enclosed_term):
-        """
-        Sets the let statement's enclosed term.
-
+                                            the term defining the constant named by x.
         :param enclosed_term: the term defining the value of the let statement.
-        :return: None
         """
+
+        self.__pairs_of_symbols_and_defining_terms = pairs_of_symbols_and_defining_terms
         self.__enclosed_term = enclosed_term
 
     def get_child_nodes(self):
