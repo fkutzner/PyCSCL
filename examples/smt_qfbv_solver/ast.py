@@ -499,21 +499,27 @@ class LetTermASTNode(TermASTNode):
 class FunctionApplicationASTNode(TermASTNode):
     """AST node class for terms representing a function application."""
 
-    def __init__(self, fname, declaration: FunctionDeclaration, argument_nodes, sort, parameters: Tuple[int] = tuple()):
+    def __init__(self, declaration: FunctionDeclaration, argument_nodes, parameters: Tuple[int] = tuple()):
         """
         Initializes the FunctionApplicationASTNode object.
 
-        :param fname: The function name.
         :param declaration: The function's declaration.
         :param argument_nodes: The AST nodes of the function arguments.
-        :param sort: The function's range sort.
         :param parameters: The function's parameters (i.e. the sequence of numerals in (_ fname num1 num2 ... numN)
                            expressions). If the function is not parametrized, this argument is required to be the
                            empty tuple.
+        :raises ValueError if the function cannot be applied to the given arguments.
         """
-        self.__sort = sort
+
+        if len(argument_nodes) != declaration.get_signature().get_arity():
+            raise ValueError("Illegal number of arguments for function " + declaration.get_name())
+
+        arg_sorts = list(parameters) + [x.get_sort() for x in argument_nodes]
+        self.__sort = declaration.get_signature().get_range_sort(arg_sorts)
+        if self.__sort is None:
+            raise ValueError("Illegally typed arguments for function " + declaration.get_name())
+
         self.__argument_nodes = argument_nodes
-        self.__fname = fname
         self.__parameters = parameters
         self.__declaration = declaration
 
@@ -537,35 +543,34 @@ class FunctionApplicationASTNode(TermASTNode):
         """
         return self.__parameters
 
-    def get_function_name(self):
+    def get_declaration(self) -> FunctionDeclaration:
         """
-        Returns the applied function's name.
+        Gets the function's declaration, or None if no such node exists.
+        :return: the function's declaration, or None if no such node exists.
+        """
+        return self.__declaration
 
-        :return: the applied function's name.
+    def set_declaration(self, declaration: FunctionDeclaration):
         """
-        return self.__fname
-
-    def get_declaration(self) -> Union[DeclareFunCommandASTNode,
-                                       DefineFunCommandASTNode,
-                                       LetTermASTNode,
-                                       type(None)]:
-        """
-        Gets the function's declaration AST node, or None if no such node exists.
-        :return: the function's declaration AST node, or None if no such node exists.
-        """
-        return self.__declaration.get_declaring_ast_node()
-
-    def set_function_name(self, name: str):
-        """
-        Sets the applied function's name.
-
-        :param name: the applied function's new name.
+        Sets the function's declaration.
+        :param declaration: The function's declaration.
         :return: None
+        :raises ValueError if the function cannot be applied to its arguments or if the new declaration would change
+                           the term's sort.
         """
-        self.__fname = name
+        if len(self.__argument_nodes) != declaration.get_signature().get_arity():
+            raise ValueError("Illegal number of arguments for function " + declaration.get_name())
+
+        arg_sorts = list(self.__parameters) + [x.get_sort() for x in self.__argument_nodes]
+        new_sort = declaration.get_signature().get_range_sort(arg_sorts)
+        if new_sort is None:
+            raise ValueError("Illegally typed arguments for function " + declaration.get_name())
+        if new_sort is not self.__sort:
+            raise ValueError("New declaration illegally changes the term sort")
+        self.__declaration = declaration
 
     def __str__(self):
-        result = self.__class__.__name__ + " Function: " + self.__fname + " Sort: " + str(self.__sort)
+        result = self.__class__.__name__ + " Function: " + self.__declaration.get_name() + " Sort: " + str(self.__sort)
         if len(self.__parameters) != 0:
             result += " Parameters: " + str(self.__parameters)
         return result

@@ -31,7 +31,7 @@ class FunctionDefinitionInliner(ASTTransformer):
         :param definition: The AST node defining the function of term.
         :return: The result of expanding term wrt. definition.
         """
-        assert term.get_function_name() == definition.get_fun_name()
+        assert term.get_declaration().get_name() == definition.get_fun_name()
         parm_names = [x for x, _ in definition.get_formal_parameters()]
         defining_term = definition.get_child_nodes()[0]
         if len(parm_names) > 0:
@@ -55,8 +55,8 @@ class FunctionDefinitionInliner(ASTTransformer):
         """
         # TODO: expansion cycle detection
         if isinstance(term, ast.FunctionApplicationASTNode) \
-           and isinstance(term.get_declaration(), ast.DefineFunCommandASTNode):
-            definition = term.get_declaration()
+           and isinstance(term.get_declaration().get_declaring_ast_node(), ast.DefineFunCommandASTNode):
+            definition = term.get_declaration().get_declaring_ast_node()
             result = self.__create_expansion(term, definition)
         else:
             result = term

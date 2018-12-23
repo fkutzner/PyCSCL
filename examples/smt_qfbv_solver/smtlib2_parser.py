@@ -100,9 +100,7 @@ def parse_smtlib2_flat_term(parsed_sexp, sort_ctx: sorts.SortContext,
         if constant_decl is None or constant_decl.get_signature().get_arity() != 0:
             raise ValueError("Malformed constant")
         else:
-            func_sig, func_name = constant_decl.get_signature(), constant_decl.get_name()
-            declaration = fun_scope.get_declaration(parsed_sexp)
-            return ast.FunctionApplicationASTNode(func_name, declaration, tuple(), func_sig.get_range_sort(tuple()))
+            return ast.FunctionApplicationASTNode(constant_decl, tuple())
 
 
 def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext,
@@ -131,23 +129,13 @@ def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext
         fname = parsed_sexp[0]
         fparams = tuple()
 
-    fdecl_lookup_result = fun_scope.get_declaration(fname)
-
-    if fdecl_lookup_result is None:
+    if fun_scope.get_declaration(fname) is None:
         raise ValueError("Undeclared function " + fname)
-
-    func_sig, func_name = fdecl_lookup_result.get_signature(), fdecl_lookup_result.get_name()
-    if func_sig.get_arity() != len(parsed_sexp)-1:
-        raise ValueError("Illegal number of arguments for function " + fname)
 
     args = [parse_smtlib2_term(x, sort_ctx, fun_scope) for x in parsed_sexp[1:]]
 
-    term_sort = func_sig.get_range_sort(fparams + tuple(x.get_sort() for x in args))
-    if term_sort is None:
-        raise ValueError("Illegally typed arguments for function " + fname)
-
-    declaration = fun_scope.get_declaration(fname)
-    return ast.FunctionApplicationASTNode(func_name, declaration, args, term_sort, fparams)
+    # FunctionApplicationASTNode raises ValueError if the term is not well-sorted:
+    return ast.FunctionApplicationASTNode(fun_scope.get_declaration(fname), args, fparams)
 
 
 def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,

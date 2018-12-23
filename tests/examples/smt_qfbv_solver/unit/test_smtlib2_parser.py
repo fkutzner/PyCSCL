@@ -3,7 +3,6 @@ from typing import List
 import examples.smt_qfbv_solver.smtlib2_parser as smt
 import examples.smt_qfbv_solver.sorts as sorts
 import examples.smt_qfbv_solver.ast as ast
-import examples.smt_qfbv_solver.syntactic_scope as synscope
 
 
 class TestParseSmtlib2Literal(unittest.TestCase):
@@ -168,7 +167,7 @@ class TestParseSmtlib2Term(unittest.TestCase):
         result = smt.parse_smtlib2_term("foonction", sort_ctx, fun_scope)
         assert isinstance(result, ast.FunctionApplicationASTNode)
         assert isinstance(result.get_sort(), sorts.IntegerSort)
-        assert result.get_function_name() == "foonction"
+        assert result.get_declaration().get_name() == "foonction"
         assert len(result.get_child_nodes()) == 0
 
     def test_constant_in_parens_is_term(self):
@@ -180,7 +179,7 @@ class TestParseSmtlib2Term(unittest.TestCase):
         result = smt.parse_smtlib2_term(["foonction"], sort_ctx, fun_scope)
         assert isinstance(result, ast.FunctionApplicationASTNode)
         assert isinstance(result.get_sort(), sorts.IntegerSort)
-        assert result.get_function_name() == "foonction"
+        assert result.get_declaration().get_name() == "foonction"
         assert len(result.get_child_nodes()) == 0
 
     def test_function_expression_is_term(self):
@@ -195,7 +194,7 @@ class TestParseSmtlib2Term(unittest.TestCase):
         result = smt.parse_smtlib2_term(["foonction", "#b100", "30"], sort_ctx, fun_scope)
         assert isinstance(result, ast.FunctionApplicationASTNode)
         assert isinstance(result.get_sort(), sorts.IntegerSort)
-        assert result.get_function_name() == "foonction"
+        assert result.get_declaration().get_name() == "foonction"
         assert len(result.get_child_nodes()) == 2
 
         lhs_node = result.get_child_nodes()[0]
