@@ -499,21 +499,17 @@ class LetTermASTNode(TermASTNode):
 class FunctionApplicationASTNode(TermASTNode):
     """AST node class for terms representing a function application."""
 
-    def __init__(self, fname, argument_nodes, sort, parameters: Tuple[int] = tuple(),
-                 declaration: Union[DeclareFunCommandASTNode,
-                                    DefineFunCommandASTNode,
-                                    LetTermASTNode,
-                                    type(None)] = None):
+    def __init__(self, fname, declaration: FunctionDeclaration, argument_nodes, sort, parameters: Tuple[int] = tuple()):
         """
         Initializes the FunctionApplicationASTNode object.
 
         :param fname: The function name.
+        :param declaration: The function's declaration.
         :param argument_nodes: The AST nodes of the function arguments.
         :param sort: The function's range sort.
         :param parameters: The function's parameters (i.e. the sequence of numerals in (_ fname num1 num2 ... numN)
                            expressions). If the function is not parametrized, this argument is required to be the
                            empty tuple.
-        :param declaration: The function's declaring AST node, or None if no such node exists.
         """
         self.__sort = sort
         self.__argument_nodes = argument_nodes
@@ -557,7 +553,7 @@ class FunctionApplicationASTNode(TermASTNode):
         Gets the function's declaration AST node, or None if no such node exists.
         :return: the function's declaration AST node, or None if no such node exists.
         """
-        return self.__declaration
+        return self.__declaration.get_declaring_ast_node()
 
     def set_function_name(self, name: str):
         """

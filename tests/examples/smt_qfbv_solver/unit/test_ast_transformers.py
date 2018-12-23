@@ -23,15 +23,19 @@ class TestFunctionDefinitionInliner(unittest.TestCase):
 
         set_logic_node = ast.SetLogicCommandASTNode("QF_BV")
         declare_fun_node = ast.DeclareFunCommandASTNode("foonction", [sort_ctx.get_int_sort()], sort_ctx.get_int_sort())
+        decl = ast.FunctionDeclaration("foonction", ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 1, True))
         term_1_node = ast.FunctionApplicationASTNode("foonction",
+                                                     decl,
                                                      [ast.LiteralASTNode(3, sort_ctx.get_int_sort())],
                                                      sort_ctx.get_int_sort())
         term_2_node = ast.LetTermASTNode()
         term_2_node.set_definitions([("x", ast.LiteralASTNode(3, sort_ctx.get_int_sort()))])
-        term_2_node.set_enclosed_term(ast.FunctionApplicationASTNode("x", [], sort_ctx.get_int_sort()))
+        x_decl = ast.FunctionDeclaration("x", ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 0, True))
+        term_2_node.set_enclosed_term(ast.FunctionApplicationASTNode("x", x_decl, [], sort_ctx.get_int_sort()))
 
+        eq_decl = ast.FunctionDeclaration("x", ast.FunctionSignature(lambda x: sort_ctx.get_bool_sort(), 2, True))
         assert_node = ast.AssertCommandASTNode(
-            ast.FunctionApplicationASTNode("=", [term_1_node, term_2_node], sort_ctx.get_bool_sort())
+            ast.FunctionApplicationASTNode("=", eq_decl, [term_1_node, term_2_node], sort_ctx.get_bool_sort())
         )
 
         test_data = [set_logic_node, declare_fun_node, assert_node]
@@ -56,34 +60,48 @@ class TestFunctionDefinitionInliner(unittest.TestCase):
         set_logic_node = ast.SetLogicCommandASTNode("QF_BV")
         define_int_const_node = ast.DefineFunCommandASTNode("x", [], sort_ctx.get_int_sort(),
                                                             ast.LiteralASTNode(100, sort_ctx.get_int_sort()))
+        x_decl = ast.FunctionDeclaration("x",
+                                         ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 0, True),
+                                         define_int_const_node)
         define_bv_const_node = ast.DefineFunCommandASTNode("y", [], sort_ctx.get_bv_sort(10),
                                                            ast.LiteralASTNode(100, sort_ctx.get_bv_sort(10)))
+        y_decl = ast.FunctionDeclaration("y",
+                                         ast.FunctionSignature(lambda x: sort_ctx.get_bv_sort(10), 0, True),
+                                         define_bv_const_node)
         declare_fun_node = ast.DeclareFunCommandASTNode("foonction",
                                                         [sort_ctx.get_int_sort(), sort_ctx.get_bv_sort(10)],
                                                         sort_ctx.get_int_sort())
+        fn_decl = ast.FunctionDeclaration("foonction",
+                                          ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 2, True),
+                                          declare_fun_node)
 
         # This term's constants must be replaced:
         term_1_node = ast.FunctionApplicationASTNode("foonction",
-                                                     [ast.FunctionApplicationASTNode("x", [], sort_ctx.get_int_sort(),
-                                                                                     declaration=define_int_const_node),
-                                                      ast.FunctionApplicationASTNode("y", [], sort_ctx.get_int_sort(),
-                                                                                     declaration=define_bv_const_node)],
-                                                     sort_ctx.get_int_sort(),
-                                                     declaration=declare_fun_node)
+                                                     fn_decl,
+                                                     [ast.FunctionApplicationASTNode("x", x_decl, [],
+                                                                                     sort_ctx.get_int_sort()),
+                                                      ast.FunctionApplicationASTNode("y", y_decl, [],
+                                                                                     sort_ctx.get_int_sort())],
+                                                     sort_ctx.get_int_sort())
 
         # The let term's definitions shadow the constants and must not be replaced:
         term_2_node = ast.LetTermASTNode()
         term_2_node.set_definitions([("x", ast.LiteralASTNode(3, sort_ctx.get_int_sort())),
                                      ("y", ast.LiteralASTNode(3, sort_ctx.get_bv_sort(10)))])
-        term_2_node.set_enclosed_term(ast.FunctionApplicationASTNode("foonction", [
-                                         ast.FunctionApplicationASTNode("x", [], sort_ctx.get_int_sort(),
-                                                                        declaration=term_2_node),
-                                         ast.FunctionApplicationASTNode("y", [], sort_ctx.get_bv_sort(10),
-                                                                        declaration=term_2_node)
+        x_decl = ast.FunctionDeclaration("x",
+                                         ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 0, True),
+                                         term_2_node)
+        y_decl = ast.FunctionDeclaration("y",
+                                         ast.FunctionSignature(lambda x: sort_ctx.get_bv_sort(10), 0, True),
+                                         term_2_node)
+        term_2_node.set_enclosed_term(ast.FunctionApplicationASTNode("foonction", fn_decl, [
+                                         ast.FunctionApplicationASTNode("x", x_decl, [], sort_ctx.get_int_sort()),
+                                         ast.FunctionApplicationASTNode("y", y_decl, [], sort_ctx.get_bv_sort(10))
                                       ], sort_ctx.get_int_sort()))
 
+        eq_decl = ast.FunctionDeclaration("x", ast.FunctionSignature(lambda x: sort_ctx.get_bool_sort(), 2, True))
         assert_node = ast.AssertCommandASTNode(
-            ast.FunctionApplicationASTNode("=", [term_1_node, term_2_node], sort_ctx.get_bool_sort())
+            ast.FunctionApplicationASTNode("=", eq_decl, [term_1_node, term_2_node], sort_ctx.get_bool_sort())
         )
 
         test_data = [set_logic_node, define_int_const_node, define_bv_const_node,
@@ -111,28 +129,43 @@ class TestFunctionDefinitionInliner(unittest.TestCase):
         sort_ctx = sorts.SortContext()
 
         set_logic_node = ast.SetLogicCommandASTNode("QF_BV")
-        fbody_node = ast.FunctionApplicationASTNode("+",
-                                                    [ast.FunctionApplicationASTNode("x", [], sort_ctx.get_int_sort()),
-                                                     ast.FunctionApplicationASTNode("y", [], sort_ctx.get_int_sort())],
+
+        x_decl = ast.FunctionDeclaration("x",
+                                         ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 0, True))
+        y_decl = ast.FunctionDeclaration("y",
+                                         ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 0, True))
+        plus_decl = ast.FunctionDeclaration("+",
+                                            ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 2, True))
+
+        fbody_node = ast.FunctionApplicationASTNode("+", plus_decl,
+                                                    [ast.FunctionApplicationASTNode("x", x_decl, [],
+                                                                                    sort_ctx.get_int_sort()),
+                                                     ast.FunctionApplicationASTNode("y", y_decl, [],
+                                                                                    sort_ctx.get_int_sort())],
                                                     sort_ctx.get_int_sort())
         define_fun_node = ast.DefineFunCommandASTNode("foonction",
                                                       [("x", sort_ctx.get_int_sort()),
                                                        ("y", sort_ctx.get_int_sort())],
                                                       sort_ctx.get_int_sort(),
                                                       fbody_node)
-        fun_term_1_node = ast.FunctionApplicationASTNode("foonction",
+        fn_decl = ast.FunctionDeclaration("foonction",
+                                          ast.FunctionSignature(lambda x: sort_ctx.get_int_sort(), 2, True),
+                                          define_fun_node)
+
+        fun_term_1_node = ast.FunctionApplicationASTNode("foonction", fn_decl,
                                                          [ast.LiteralASTNode(100, sort_ctx.get_int_sort()),
                                                           ast.LiteralASTNode(140, sort_ctx.get_int_sort())],
-                                                         sort_ctx.get_int_sort(),
-                                                         declaration=define_fun_node)
-        fun_term_2_node = ast.FunctionApplicationASTNode("foonction",
+                                                         sort_ctx.get_int_sort())
+        fun_term_2_node = ast.FunctionApplicationASTNode("foonction", fn_decl,
                                                          [fun_term_1_node,
                                                           ast.LiteralASTNode(140, sort_ctx.get_int_sort())],
-                                                         sort_ctx.get_int_sort(),
-                                                         declaration=define_fun_node)
+                                                         sort_ctx.get_int_sort())
 
+        eq_decl = ast.FunctionDeclaration("=",
+                                          ast.FunctionSignature(lambda x: sort_ctx.get_bool_sort(), 2, True))
         assert_node = ast.AssertCommandASTNode(
-            ast.FunctionApplicationASTNode("=", [ast.LiteralASTNode(100, sort_ctx.get_int_sort()), fun_term_2_node],
+            ast.FunctionApplicationASTNode("=", eq_decl,
+                                           [ast.LiteralASTNode(100, sort_ctx.get_int_sort()), fun_term_2_node],
                                            sort_ctx.get_bool_sort()))
 
         test_data = [set_logic_node, define_fun_node, assert_node]

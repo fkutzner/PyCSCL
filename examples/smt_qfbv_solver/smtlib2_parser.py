@@ -102,8 +102,7 @@ def parse_smtlib2_flat_term(parsed_sexp, sort_ctx: sorts.SortContext,
         else:
             func_sig, func_name = constant_decl.get_signature(), constant_decl.get_name()
             declaration = fun_scope.get_declaration(parsed_sexp)
-            return ast.FunctionApplicationASTNode(func_name, tuple(), func_sig.get_range_sort(tuple()),
-                                                  declaration=declaration.get_declaring_ast_node())
+            return ast.FunctionApplicationASTNode(func_name, declaration, tuple(), func_sig.get_range_sort(tuple()))
 
 
 def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext,
@@ -148,8 +147,7 @@ def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext
         raise ValueError("Illegally typed arguments for function " + fname)
 
     declaration = fun_scope.get_declaration(fname)
-    return ast.FunctionApplicationASTNode(func_name, args, term_sort, fparams,
-                                          declaration=declaration.get_declaring_ast_node())
+    return ast.FunctionApplicationASTNode(func_name, declaration, args, term_sort, fparams)
 
 
 def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
