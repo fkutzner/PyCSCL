@@ -181,6 +181,23 @@ class TermASTNode(ASTNode, abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def clone(self, decl_ast_node_substitution_map, decl_clone_memoization):
+        """
+        Clones the AST node and its children.
+
+        Sorts are reused instead of being cloned. Function declarations are cloned as needed:
+        If the AST node of a declaration is associated with a replacement via decl_ast_node_substitution_map,
+        the declaration is replaced by a function declaration associated with the replacing AST node. To avoid
+        cloning FunctionDeclaration objects needlessly, the "original" is associated with the clone via the map
+        decl_clone_memoization.
+
+        :param decl_ast_node_substitution_map: A mapping of declaration AST node replacements.
+        :param decl_clone_memoization: A mapping of function declaration replacements.
+        :return: The cloned node.
+        """
+        pass
+
 
 class AssertCommandASTNode(ASTNode):
     """AST node class for the assert command."""
@@ -426,6 +443,9 @@ class LiteralASTNode(TermASTNode):
         """
         return self.__literal
 
+    def clone(self, decl_ast_node_substitution_map, decl_clone_memoization):
+        return LiteralASTNode(self.__literal, self.__sort)
+
     def __str__(self):
         return self.__class__.__name__ + " Literal: " + str(self.__literal) + " Sort: " + str(self.__sort)
 
@@ -476,6 +496,30 @@ class LetTermASTNode(TermASTNode):
         :return: a sequence of pairs (x,y) as described above.
         """
         return self.__pairs_of_symbols_and_defining_terms
+
+    def set_enclosed_term(self, enclosed_term: ASTNode):
+        """
+        Sets the term enclosed by the let statement.
+        :param enclosed_term: The new enclosed term.
+        :return: None
+        """
+        self.__enclosed_term = enclosed_term
+
+    def clone(self, decl_ast_node_substitution_map, decl_clone_memoization):
+        assert self not in decl_ast_node_substitution_map.keys()
+
+        replacing_let_term_node = LetTermASTNode(self.__pairs_of_symbols_and_defining_terms,
+                                                 self.__enclosed_term)
+        decl_ast_node_substitution_map[self] = replacing_let_term_node
+
+        def_clones = [(name, term.clone(decl_ast_node_substitution_map, decl_clone_memoization))
+                      for name, term in self.__pairs_of_symbols_and_defining_terms]
+        enclosed_term_clone = self.__enclosed_term.clone(decl_ast_node_substitution_map, decl_clone_memoization)
+
+        replacing_let_term_node.__pairs_of_symbols_and_defining_terms = def_clones
+        replacing_let_term_node.__enclosed_term = enclosed_term_clone
+
+        return replacing_let_term_node
 
     def __str__(self):
         return self.__class__.__name__ + " Symbols: " + str([x[0] for x in self.__pairs_of_symbols_and_defining_terms])
@@ -553,6 +597,23 @@ class FunctionApplicationASTNode(TermASTNode):
         if new_sort is not self.__sort:
             raise ValueError("New declaration illegally changes the term sort")
         self.__declaration = declaration
+
+    def clone(self, decl_ast_node_substitution_map, decl_clone_memoization):
+        argument_node_clones = [x.clone(decl_ast_node_substitution_map, decl_clone_memoization)
+                                for x in self.__argument_nodes]
+        parameters_clone = tuple(self.__parameters)
+
+        if self.__declaration in decl_clone_memoization.keys():
+            clone_decl = decl_clone_memoization[self.__declaration]
+        elif self.__declaration.get_declaring_ast_node() in decl_ast_node_substitution_map.keys():
+            new_declaring_node = decl_ast_node_substitution_map[self.__declaration.get_declaring_ast_node()]
+            clone_decl = FunctionDeclaration(self.__declaration.get_name(),
+                                             self.__declaration.get_signature(),
+                                             new_declaring_node)
+            decl_clone_memoization[self.__declaration] = clone_decl
+        else:
+            clone_decl = self.__declaration
+        return FunctionApplicationASTNode(clone_decl, argument_node_clones, parameters_clone)
 
     def __str__(self):
         result = self.__class__.__name__ + " Function: " + self.__declaration.get_name() + " Sort: " + str(self.__sort)

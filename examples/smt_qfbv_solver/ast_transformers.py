@@ -1,5 +1,4 @@
 import abc
-import copy
 from typing import List
 import examples.smt_qfbv_solver.ast as ast
 
@@ -37,10 +36,13 @@ class FunctionDefinitionInliner(ASTTransformer):
         if len(parm_names) > 0:
             arg_terms = term.get_child_nodes()
             parm_bindings = zip(parm_names, arg_terms)
-            # Performing a deep copy in order to keep the AST a tree
-            return ast.LetTermASTNode(list(parm_bindings), copy.deepcopy(defining_term))
+            assert isinstance(defining_term, ast.TermASTNode)
+            result = ast.LetTermASTNode(list(parm_bindings), defining_term)
+            defining_term_clone = defining_term.clone({definition: result}, dict())
+            result.set_enclosed_term(defining_term_clone)
+            return result
         else:
-            return copy.deepcopy(defining_term)
+            return defining_term.clone(dict(), dict())
 
     def __transform_term(self, term: ast.TermASTNode) -> ast.TermASTNode:
         """
