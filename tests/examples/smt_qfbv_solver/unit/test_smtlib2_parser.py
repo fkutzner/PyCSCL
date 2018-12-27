@@ -665,3 +665,97 @@ class TestParseSmtlib2Problem(unittest.TestCase):
     def test_ignores_set_info_commands(self):
         result = smt.parse_smtlib2_problem([["set-info", ":smt-lib-version", "2.0"]])
         assert result == []
+
+    def test_fn_can_be_redeclared_after_pop(self):
+        result = smt.parse_smtlib2_problem([["set-logic", "QF_BV"],
+                                            ["push"],
+                                            ["declare-const", "someconst", "Int"],
+                                            ["assert", ["=", "someconst", "someconst"]],
+                                            ["pop"],
+                                            ["declare-const", "someconst", "Bool"],
+                                            ["assert", ["=", "someconst", "someconst"]]])
+        expected_tree = """
+          SetLogicCommandASTNode Logic: QF_BV
+          PushPopCommandASTNode Push 1
+          DeclareFunCommandASTNode FunctionName: someconst DomainSorts: [] RangeSort: Int
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: = Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Int
+              FunctionApplicationASTNode Function: someconst Sort: Int
+          PushPopCommandASTNode Pop 1
+          DeclareFunCommandASTNode FunctionName: someconst DomainSorts: [] RangeSort: Bool
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: = Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Bool"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_shadowed_fn_becomes_visible_after_pop(self):
+        result = smt.parse_smtlib2_problem([["set-logic", "QF_BV"],
+                                            ["declare-const", "someconst", "Bool"],
+                                            ["push"],
+                                            ["declare-const", "someconst", "Int"],
+                                            ["assert", ["=", "someconst", "someconst"]],
+                                            ["pop"],
+                                            ["assert", ["=", "someconst", "someconst"]]])
+        # Arguments of second assert should have type Bool:
+        expected_tree = """
+          SetLogicCommandASTNode Logic: QF_BV
+          DeclareFunCommandASTNode FunctionName: someconst DomainSorts: [] RangeSort: Bool
+          PushPopCommandASTNode Push 1
+          DeclareFunCommandASTNode FunctionName: someconst DomainSorts: [] RangeSort: Int
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: = Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Int
+              FunctionApplicationASTNode Function: someconst Sort: Int
+          PushPopCommandASTNode Pop 1
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: = Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Bool"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_multipushpop_removes_declarations(self):
+        result = smt.parse_smtlib2_problem([["set-logic", "QF_BV"],
+                                            ["declare-const", "someconst", "Bool"],
+                                            ["push"],
+                                            ["declare-const", "someconst", "Int"],
+                                            ["push"],
+                                            ["declare-const", "someconst", "Int"],
+                                            ["push", "2"],
+                                            ["declare-const", "someconst", "Int"],
+                                            ["pop", "1"],
+                                            ["assert", ["=", "someconst", "someconst"]],
+                                            ["pop", "3"],
+                                            ["assert", ["=", "someconst", "someconst"]]])
+        # Arguments of second assert should have type Bool:
+        expected_tree = """
+          SetLogicCommandASTNode Logic: QF_BV
+          DeclareFunCommandASTNode FunctionName: someconst DomainSorts: [] RangeSort: Bool
+          PushPopCommandASTNode Push 1
+          DeclareFunCommandASTNode FunctionName: someconst DomainSorts: [] RangeSort: Int
+          PushPopCommandASTNode Push 1
+          DeclareFunCommandASTNode FunctionName: someconst DomainSorts: [] RangeSort: Int
+          PushPopCommandASTNode Push 2
+          DeclareFunCommandASTNode FunctionName: someconst DomainSorts: [] RangeSort: Int
+          PushPopCommandASTNode Pop 1
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: = Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Int
+              FunctionApplicationASTNode Function: someconst Sort: Int
+          PushPopCommandASTNode Pop 3
+          AssertCommandASTNode
+            FunctionApplicationASTNode Function: = Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Bool
+              FunctionApplicationASTNode Function: someconst Sort: Bool"""
+        self.assert_printed_ast_equal(result, expected_tree, 10)
+
+    def test_pop_without_push_fails(self):
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["set-logic", "QF_BV"],
+                                       ["pop"]])
+
+        with self.assertRaises(ValueError):
+            smt.parse_smtlib2_problem([["set-logic", "QF_BV"],
+                                       ["push" "2"],
+                                       ["pop", "3"]])

@@ -219,19 +219,29 @@ class AssertCommandASTNode(ASTNode):
 class PushPopCommandASTNode(ASTNode):
     """AST node class for the push and pop commands."""
 
-    def __init__(self, is_push):
+    def __init__(self, is_push: bool, num_levels: int):
         """
         Initializes the PushPopCommandASTNode object.
 
         :param is_push: True iff the node is a push command node, False otherwise.
+        :param num_levels: The non-negative argument to the push/pop command.
         """
         self.__is_push = is_push
+        self.__num_levels = num_levels
 
     def get_child_nodes(self):
         return tuple()
 
     def set_child_node(self, index: int, node: ASTNode):
         raise ValueError("index " + str(index) + " out of bounds")
+
+    def get_num_levels(self):
+        """
+        Returns the argument to the push/pop command.
+
+        :return: the argument to the push/pop command.
+        """
+        return self.__num_levels
 
     def is_push(self):
         """
@@ -242,7 +252,7 @@ class PushPopCommandASTNode(ASTNode):
         return self.__is_push
 
     def __str__(self):
-        return self.__class__.__name__ + " " + ("Push" if self.__is_push else "Pop")
+        return self.__class__.__name__ + " " + ("Push" if self.__is_push else "Pop") + " " + str(self.__num_levels)
 
 
 class CheckSATCommandASTNode(ASTNode):

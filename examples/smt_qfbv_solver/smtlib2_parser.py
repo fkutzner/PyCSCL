@@ -440,6 +440,7 @@ def parse_smtlib2_problem(parsed_sexp):
                 problem_toplevel_function_scope = new_scope
 
             push_level += amnt
+            return ast.PushPopCommandASTNode(True, amnt)
 
         elif command == "pop":
             if len(sexp) > 2:
@@ -455,6 +456,7 @@ def parse_smtlib2_problem(parsed_sexp):
                 problem_toplevel_function_scope = problem_toplevel_function_scope.get_parent()
 
             push_level -= amnt
+            return ast.PushPopCommandASTNode(False, amnt)
 
         elif command == "set-info":
             pass  # Ignore set-info commands
