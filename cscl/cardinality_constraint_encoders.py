@@ -89,10 +89,8 @@ def encode_at_most_k_constraint_ltseq(lit_factory: CNFLiteralFactory, k: int, co
     # register[i] represents (as a unary number) the number of literals in constrained_lits[0],
     # ..., constrained_lits[i] that are assigned to true.
 
-    result = []
-
     # See the source paper for a description of the encoding
-    result.append([-constrained_lits[0], registers[0][0]])
+    result = [[-constrained_lits[0], registers[0][0]]]
 
     for i in range(1, k):
         result.append([-registers[0][i]])

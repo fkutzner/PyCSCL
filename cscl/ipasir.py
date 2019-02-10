@@ -1,9 +1,9 @@
 import abc
-from ctypes import *
-from cscl.interfaces import *
+import ctypes
+import cscl.interfaces
 
 
-class IPASIRSatSolver(SatSolver, abc.ABC):
+class IPASIRSatSolver(cscl.interfaces.SatSolver, abc.ABC):
     """Interface for SAT solvers implementing the IPASIR interface"""
     pass
 
@@ -24,28 +24,27 @@ class IPASIRSatSolverResource:
     def __init__(self, path_to_solver_dso):
         self.__path_to_solver_dso = path_to_solver_dso
 
-    def __enter__(self) -> SatSolver:
+    def __enter__(self) -> cscl.interfaces.SatSolver:
         class IPASIRSatSolverImpl(IPASIRSatSolver):
             def __init__(self, path_to_solver_dso):
-                self.dso = CDLL(path_to_solver_dso)
+                self.dso = ctypes.CDLL(path_to_solver_dso)
 
-                self.dso.ipasir_init.restype = c_void_p
-                self.dso.ipasir_release.argtypes = [c_void_p]
-                self.dso.ipasir_add.argtypes = [c_void_p, c_int]
-                self.dso.ipasir_assume.argtypes = [c_void_p, c_int]
-                self.dso.ipasir_solve.argtypes = [c_void_p]
-                self.dso.ipasir_solve.restype = c_int
-                self.dso.ipasir_val.argtypes = [c_void_p, c_int]
-                self.dso.ipasir_val.restype = c_int
-                self.dso.ipasir_failed.argtypes = [c_void_p, c_int]
-                self.dso.ipasir_failed.restype = c_int
+                self.dso.ipasir_init.restype = ctypes.c_void_p
+                self.dso.ipasir_release.argtypes = [ctypes.c_void_p]
+                self.dso.ipasir_add.argtypes = [ctypes.c_void_p, ctypes.c_int]
+                self.dso.ipasir_assume.argtypes = [ctypes.c_void_p, ctypes.c_int]
+                self.dso.ipasir_solve.argtypes = [ctypes.c_void_p]
+                self.dso.ipasir_solve.restype = ctypes.c_int
+                self.dso.ipasir_val.argtypes = [ctypes.c_void_p, ctypes.c_int]
+                self.dso.ipasir_val.restype = ctypes.c_int
+                self.dso.ipasir_failed.argtypes = [ctypes.c_void_p, ctypes.c_int]
+                self.dso.ipasir_failed.restype = ctypes.c_int
 
                 self.solver = self.dso.ipasir_init()
                 self.num_vars = 0
 
             def __del__(self):
-                if self.solver is not None:
-                    self.dso.ipasir_release(self.solver)
+                self.destroy()
 
             def consume_clause(self, clause):
                 for lit in clause:
@@ -69,12 +68,12 @@ class IPASIRSatSolverResource:
                     return True if ipasir_assignment > 0 else False
 
             def destroy(self):
-                self.dso.ipasir_release(self.solver)
-                self.solver = None
+                if self.solver is not None:
+                    self.solver = None
+                    self.dso.ipasir_release(self.solver)
 
         self.sat_solver = IPASIRSatSolverImpl(self.__path_to_solver_dso)
         return self.sat_solver
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.sat_solver.destroy()
-
