@@ -9,7 +9,9 @@ class CNFLiteralFactory(abc.ABC):
         """
         Creates a literal with a new variable.
 
-        The concrete type of the returned object is deliberately unspecified.
+        More precisely, for each distinct objects l1, l2 returned by this method, the following holds:
+        1. -l1 != l1 and -(-l1) = l1
+        2. l1 != l2 and -l1 != -l2 and -l1 != l2
 
         :return: A literal L such that neither L nor -L has previously been returned by this method.
         """
