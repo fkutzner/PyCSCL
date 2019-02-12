@@ -325,7 +325,6 @@ class TestEncodeBVXorGate(unittest.TestCase, AbstractTestBasicBitvectorGateEncod
 
 
 def int_to_bitvec(i, result_width):
-    assert i >= 0
     return tuple(1 if (i & 1 << idx) != 0 else 0 for idx in range(0, result_width))
 
 
@@ -784,3 +783,161 @@ class TestEncodeBVEqualityCompGate(unittest.TestCase, AbstractBinaryBitvectorPre
 
     def get_predicate(self):
         return lambda l, r, width: (l & (2**width - 1)) == (r & (2**width - 1))
+
+
+class AbstractBinaryBitvectorGateTest(abc.ABC):
+    def __init__(self):
+        # This mixin may only be used with test cases, since it uses assertRaises:
+        assert isinstance(self, unittest.TestCase)
+
+    @abc.abstractmethod
+    def get_bitvector_gate_encoder_under_test(self):
+        """
+        :return: the bitvector-gate encoder function under test.
+        """
+        pass
+
+    @abc.abstractmethod
+    def generate_truth_table(self, gate_arity: int):
+        """
+        Generates the truth which the encoder returned by __get_bitvector_gate_encoder_under_test()
+        is supposed to satisfy.
+
+        :param gate_arity: A nonzero, non-negative integer.
+        :return: A tuple [x_1, x_2, ..., x_(2^gate_arity)] with, for all 1 <= i <= 2^gate_arity, x_i is a tuple
+                 (l, r, o) with l, r, o being tuples of length `gate_arity` containing elements in {0, 1}.
+                 l signifies the left-hand-side input assignment, r signifies the right-hand-side
+                 assignment, o signifies the output assignment.
+        """
+
+    def __test_for_truth_table(self, gate_arity: int):
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        truth_table = self.generate_truth_table(gate_arity)
+
+        for table_entry in truth_table:
+            lhs_setting, rhs_setting, output_setting = table_entry
+
+            checker = TrivialSATSolver()
+            clause_consumer = LoggingClauseConsumerDecorator(checker)
+
+            # Encode the bitvector gate
+            lhs_input_lits = [checker.create_literal() for _ in range(0, gate_arity)]
+            rhs_input_lits = [checker.create_literal() for _ in range(0, gate_arity)]
+
+            output_lits = encoder_under_test(clause_consumer, checker,
+                                             lhs_input_lits, rhs_input_lits)
+
+            # Prepare SAT solver assumptions reflecting the truth table assignment
+            probe_lhs = apply_truth_table_setting(lhs_input_lits, lhs_setting)
+            probe_rhs = apply_truth_table_setting(rhs_input_lits, rhs_setting)
+            probe_output = apply_truth_table_setting(output_lits, output_setting)
+            probe_input = probe_lhs + probe_rhs
+            assumptions_pos = probe_input + probe_output
+
+            # Check that the setting satisfies the constraint
+            has_correct_value = checker.solve(assumptions_pos)
+            if not has_correct_value:
+                if checker.solve(probe_input):
+                    print("The gate forces an incorrect model:")
+                    checker.print_model()
+                else:
+                    print("The gate has no satisfiable assignment for this input configuration")
+
+            assert has_correct_value,\
+                "Encoding failed for truth table entry " + str(table_entry) + "\n(should be satisfiable, but is not)" \
+                + "\nEncoding:\n" + clause_consumer.to_string() \
+                + "\nAssumptions: " + str(assumptions_pos)
+
+            # Check that no other output setting satisfies the constraint
+            clause_consumer.consume_clause([-x for x in probe_output])
+            assumptions_neg = probe_input
+            is_functional_rel = not checker.solve(assumptions_neg)
+            if not is_functional_rel:
+                print("Unexpectedly found model:")
+                checker.print_model()
+            assert is_functional_rel,\
+                "Encoding failed for truth table entry " + str(table_entry) + "\n(function property violated)"\
+                + "\nEncoding:\n" + clause_consumer.to_string()\
+                + "\nAssumptions: " + str(assumptions_neg)
+
+    def test_conforms_to_truth_table_for_bv_width_1(self):
+        self.__test_for_truth_table(gate_arity=1)
+
+    def test_conforms_to_truth_table_for_bv_width_2(self):
+        self.__test_for_truth_table(gate_arity=2)
+
+    def test_conforms_to_truth_table_for_bv_width_3(self):
+        self.__test_for_truth_table(gate_arity=3)
+
+    def test_conforms_to_truth_table_for_bv_width_4(self):
+        self.__test_for_truth_table(gate_arity=4)
+
+    def test_refuses_input_bv_with_length_mismatch(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
+
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 2)]
+
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        # See assertion in __init__:
+        # noinspection PyCallByClass
+        # noinspection PyTypeChecker
+        with unittest.TestCase.assertRaises(self, ValueError):
+            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
+
+    def test_refuses_output_bv_with_length_mismatch(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
+
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        output_lits = [lit_factory.create_literal() for _ in range(0, 2)]
+
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        # See assertion in __init__:
+        # noinspection PyCallByClass
+        # noinspection PyTypeChecker
+        with unittest.TestCase.assertRaises(self, ValueError):
+            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
+
+    def test_uses_returns_output_literals(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
+
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        output_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
+        assert result == output_lits
+
+    def test_creates_output_literals_if_none_provided(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
+
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        all_inputs = lhs_input_lits + rhs_input_lits
+
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
+        assert not any(x in all_inputs for x in result)
+        assert not any(-x in all_inputs for x in result)
+
+
+class TestEncodeBvRippleCarrySubGate(unittest.TestCase, AbstractBinaryBitvectorGateTest):
+
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_ripple_carry_sub_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        truth_table = []
+        for lhs, rhs in itertools.product(range(0, 2**gate_arity), range(0, 2**gate_arity)):
+            output = lhs - rhs
+            table_entry = (int_to_bitvec(lhs, gate_arity),
+                           int_to_bitvec(rhs, gate_arity),
+                           int_to_bitvec(output, gate_arity))
+            truth_table.append(table_entry)
+        return truth_table

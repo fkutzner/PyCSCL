@@ -181,6 +181,34 @@ def encode_bv_ripple_carry_adder_gate(clause_consumer: ClauseConsumer, lit_facto
     return output_lits
 
 
+def encode_bv_ripple_carry_sub_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                                    lhs_input_lits, rhs_input_lits, output_lits=None):
+    """
+    Encodes a subtraction-gate constraint using a ripple carry adder.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
+    :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
+                           rhs_input_lits must be the same as the length of lhs_input_lits.
+    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
+                        each having a new variable, are created. Otherwise, output_lits must be a list
+                        with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :return: The list of gate output literals in LSB-to-MSB order, containing len(lhs_input_literals) literals.
+             The i'th literal of output_lits signifies the i'th bit of the difference.
+    """
+    flipped_rhs = [-x for x in rhs_input_lits]
+    constantly_1 = lit_factory.create_literal()
+    clause_consumer.consume_clause([constantly_1])
+    return encode_bv_ripple_carry_adder_gate(clause_consumer, lit_factory,
+                                             lhs_input_lits=lhs_input_lits,
+                                             rhs_input_lits=flipped_rhs,
+                                             carry_in_lit=constantly_1,
+                                             output_lits=output_lits)
+
+
 def encode_bv_parallel_mul_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
                                 lhs_input_lits, rhs_input_lits, output_lits=None, overflow_lit=None):
     """

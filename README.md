@@ -26,7 +26,7 @@ Package: `cscl.basic_gate_encoders`
 
 ##### Bitvector constraint encoders
 - Bitvector AND, OR, XOR gates
-- Ripple-carry bitvector adder gate
+- Ripple-carry bitvector adder and (2's complement) subtractor gates
 - Parallel bitvector multiplier gate
 - Signed (2's complement) and unsigned bitvector comparison gate
 
