@@ -785,15 +785,31 @@ class TestEncodeBVEqualityCompGate(unittest.TestCase, AbstractBinaryBitvectorPre
         return lambda l, r, width: (l & (2**width - 1)) == (r & (2**width - 1))
 
 
-class AbstractBinaryBitvectorGateTest(abc.ABC):
+class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
+    """
+    Base class for truth-table-based bitvector-gate tests.
+    """
     def __init__(self):
         # This mixin may only be used with test cases, since it uses assertRaises:
         assert isinstance(self, unittest.TestCase)
 
     @abc.abstractmethod
-    def get_bitvector_gate_encoder_under_test(self):
+    def encode_gate_under_test(self, clause_consumer: cscl_if.ClauseConsumer,
+                               lit_factory: cscl_if.CNFLiteralFactory, gate_arity: int):
         """
-        :return: the bitvector-gate encoder function under test.
+        Encodes the gate under test for the given agate arity, using `lit_factory` to create new literals
+        and `clause_consumer` to store the result.
+
+        :param clause_consumer: The clause consumer receiving the gate encoding.
+        :param lit_factory: The literal factory used to create new literals.
+        :param gate_arity: The gate's arity.
+        :return: a tuple (x,y) with x being the concatenation of the gate's input literals
+                 and y being the concatenation of the gate's output literals. Note: the order and amount
+                 of literals contained in x must equal the order and amount of assignments in the truth
+                 table's input setting tuples (i.e. the i'th literal in x has the same meaning as the
+                 i'th entry in the truth table's input settings). Likewise, the order and amount of literals
+                 in y must equal the order and amount of assignments in the truth table's output setting
+                 tuples.
         """
         pass
 
@@ -805,36 +821,48 @@ class AbstractBinaryBitvectorGateTest(abc.ABC):
 
         :param gate_arity: A nonzero, non-negative integer.
         :return: A tuple [x_1, x_2, ..., x_(2^gate_arity)] with, for all 1 <= i <= 2^gate_arity, x_i is a tuple
-                 (l, r, o) with l, r, o being tuples of length `gate_arity` containing elements in {0, 1}.
+                 (l+r, o) with l, r, o being tuples of length `gate_arity` containing elements in {0, 1}.
                  l signifies the left-hand-side input assignment, r signifies the right-hand-side
                  assignment, o signifies the output assignment.
         """
 
+    @abc.abstractmethod
+    def get_bitvector_gate_encoder_under_test(self):
+        """
+        Returns the bitvector gate encoder function under test.
+        :return: the bitvector gate encoder function under test.
+        """
+        pass
+
+    @abc.abstractmethod
+    def is_encoder_under_test_bv_predicate(self):
+        """
+        Returns True iff the encoder returned by get_bitvector_gate_encoder_under_test
+        encodes a bitvector predicate function
+        (i.e. the gate has a single output literal) and False iff the gate is a "full"
+        bitvector gate function (i.e. the gate has W output literals, where W is the
+        gate's arity).
+
+        :return: a bool value as described above.
+        """
+        pass
+
     def __test_for_truth_table(self, gate_arity: int):
-        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
         truth_table = self.generate_truth_table(gate_arity)
 
         for table_entry in truth_table:
-            lhs_setting, rhs_setting, output_setting = table_entry
+            input_setting, output_setting = table_entry
 
             checker = TrivialSATSolver()
             clause_consumer = LoggingClauseConsumerDecorator(checker)
 
             # Encode the bitvector gate
-            lhs_input_lits = [checker.create_literal() for _ in range(0, gate_arity)]
-            rhs_input_lits = [checker.create_literal() for _ in range(0, gate_arity)]
-
-            output_lits = encoder_under_test(clause_consumer, checker,
-                                             lhs_input_lits, rhs_input_lits)
-
-            # Prepare SAT solver assumptions reflecting the truth table assignment
-            probe_lhs = apply_truth_table_setting(lhs_input_lits, lhs_setting)
-            probe_rhs = apply_truth_table_setting(rhs_input_lits, rhs_setting)
-            probe_output = apply_truth_table_setting(output_lits, output_setting)
-            probe_input = probe_lhs + probe_rhs
-            assumptions_pos = probe_input + probe_output
+            input_lits, output_lits = self.encode_gate_under_test(clause_consumer, checker, gate_arity)
 
             # Check that the setting satisfies the constraint
+            probe_input = apply_truth_table_setting(input_lits, input_setting)
+            probe_output = apply_truth_table_setting(output_lits, output_setting)
+            assumptions_pos = probe_input + probe_output
             has_correct_value = checker.solve(assumptions_pos)
             if not has_correct_value:
                 if checker.solve(probe_input):
@@ -884,30 +912,19 @@ class AbstractBinaryBitvectorGateTest(abc.ABC):
         # noinspection PyCallByClass
         # noinspection PyTypeChecker
         with unittest.TestCase.assertRaises(self, ValueError):
-            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
+            encoder_under_test(clause_consumer=clause_consumer,
+                               lit_factory=lit_factory,
+                               lhs_input_lits=lhs_input_lits,
+                               rhs_input_lits=rhs_input_lits)
 
-    def test_refuses_output_bv_with_length_mismatch(self):
+    def test_uses_and_returns_provided_output_literals(self):
         lit_factory = TestLiteralFactory()
         clause_consumer = CollectingClauseConsumer()
 
         lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
         rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        output_lits = [lit_factory.create_literal() for _ in range(0, 2)]
-
-        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
-        # See assertion in __init__:
-        # noinspection PyCallByClass
-        # noinspection PyTypeChecker
-        with unittest.TestCase.assertRaises(self, ValueError):
-            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
-
-    def test_uses_returns_output_literals(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        output_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        output_lits = lit_factory.create_literal() if self.is_encoder_under_test_bv_predicate() \
+            else [lit_factory.create_literal() for _ in range(0, 3)]
 
         encoder_under_test = self.get_bitvector_gate_encoder_under_test()
         result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
@@ -923,12 +940,81 @@ class AbstractBinaryBitvectorGateTest(abc.ABC):
 
         encoder_under_test = self.get_bitvector_gate_encoder_under_test()
         result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
-        assert not any(x in all_inputs for x in result)
-        assert not any(-x in all_inputs for x in result)
+
+        if self.is_encoder_under_test_bv_predicate():
+            assert result not in all_inputs
+            assert -result not in all_inputs
+        else:
+            assert not any(x in all_inputs for x in result)
+            assert not any(-x in all_inputs for x in result)
 
 
-class TestEncodeBvRippleCarrySubGate(unittest.TestCase, AbstractBinaryBitvectorGateTest):
+class AbstractTruthTableBasedBitvectorToBitvectorGateTest(AbstractTruthTableBasedBitvectorGateTest):
+    """
+    Base class for truth-table-based bitvector-gate tests where the encoded gate's output represents
+    a bitvector (i.e. the gate encoder returns a list of literals).
+    """
+    def test_refuses_output_bv_with_length_mismatch(self):
+        lit_factory = TestLiteralFactory()
+        clause_consumer = CollectingClauseConsumer()
 
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
+        output_lits = [lit_factory.create_literal() for _ in range(0, 2)]
+
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        # See assertion in __init__:
+        # noinspection PyCallByClass
+        # noinspection PyTypeChecker
+        with unittest.TestCase.assertRaises(self, ValueError):
+            encoder_under_test(clause_consumer=clause_consumer,
+                               lit_factory=lit_factory,
+                               lhs_input_lits=lhs_input_lits,
+                               rhs_input_lits=rhs_input_lits,
+                               output_lits=output_lits)
+
+    def is_encoder_under_test_bv_predicate(self):
+        return False
+
+
+class AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest(AbstractTruthTableBasedBitvectorToBitvectorGateTest):
+    """
+    Base class for truth-table-based bitvector-gate tests where the encoded gate's output represents
+    a bitvector (i.e. the gate encoder returns a list of literals), where the bitvector encoder takes
+    no more arguments than
+        - clause_consumer: the clause consumer
+        - lit_factory: the literal factory
+        - lhs_input_lits, rhs_input_lits: the lhs rsp. rhs input literals
+        - output_lits: the output literals (optional argument)
+    """
+
+    def encode_gate_under_test(self, clause_consumer: cscl_if.ClauseConsumer,
+                               lit_factory: cscl_if.CNFLiteralFactory, gate_arity: int):
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, gate_arity)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, gate_arity)]
+
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        output_lits = encoder_under_test(clause_consumer=clause_consumer,
+                                         lit_factory=lit_factory,
+                                         lhs_input_lits=lhs_input_lits,
+                                         rhs_input_lits=rhs_input_lits)
+
+        return lhs_input_lits+rhs_input_lits, output_lits
+
+
+class AbstractTruthTableBasedBitvectorPredicateGateTest(AbstractTruthTableBasedBitvectorGateTest):
+    """
+    Base class for truth-table-based bitvector-gate tests where the encoded gate's output is a single
+    literal.
+    """
+    def is_encoder_under_test_bv_predicate(self):
+        return True
+
+
+class TestEncodeBvRippleCarrySubGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
+    """
+    Test for bvg.encode_bv_ripple_carry_sub_gate()
+    """
     def get_bitvector_gate_encoder_under_test(self):
         return bvg.encode_bv_ripple_carry_sub_gate
 
@@ -936,8 +1022,7 @@ class TestEncodeBvRippleCarrySubGate(unittest.TestCase, AbstractBinaryBitvectorG
         truth_table = []
         for lhs, rhs in itertools.product(range(0, 2**gate_arity), range(0, 2**gate_arity)):
             output = lhs - rhs
-            table_entry = (int_to_bitvec(lhs, gate_arity),
-                           int_to_bitvec(rhs, gate_arity),
+            table_entry = (int_to_bitvec(lhs, gate_arity) + int_to_bitvec(rhs, gate_arity),
                            int_to_bitvec(output, gate_arity))
             truth_table.append(table_entry)
         return truth_table
