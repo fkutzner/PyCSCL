@@ -46,7 +46,7 @@ class TestEncodeGateVector(unittest.TestCase):
         clause_consumer = CollectingClauseConsumer()
 
         def __should_not_be_called(*_):
-            assert False, "This function should get be called"
+            assert False, "This function should not be called"
 
         result = bvg.encode_gate_vector(clause_consumer, lit_factory,
                                         __should_not_be_called,
@@ -146,182 +146,6 @@ class TestEncodeGateVector(unittest.TestCase):
                        (clause_consumer, lit_factory, (30, 31), 3)]
         assert recording_target == expected_rt,\
             "Unexpected encoder calls:\n" + str(recording_target) + "\nvs.\n" + str(expected_rt)
-
-
-class AbstractTestBasicBitvectorGateEncoder(abc.ABC):
-    """Abstract test case for testing bitvector gate-constraints where the i'th output
-       literal is only dependent on the i'th left-hand-side and the i'th right-hand-side
-       input literal, via a gate constraint G.
-
-       This mixin may only be used with abstract classes or classes deriving from
-       unittest.TestCase."""
-
-    def __init__(self):
-        # This mixin may only be used with test cases, since it uses assertRaises:
-        assert isinstance(self, unittest.TestCase)
-
-    @abc.abstractmethod
-    def get_bv_gate_encoder_under_test(self):
-        """
-        Gets the bitvector gate encoder under test.
-
-        :return: the bitvector gate encoder under test, a function having the same
-                 signature as the encode_bv_and_gate function.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_basic_gate_encoder_of_bv_gate_encoder(self):
-        """
-        Gets the (non-bitvector) basic gate encoder encoding the gate constraint G
-
-        :return: a basic gate encoder function, a function having the same signature
-                 as cscl.basic_gate_encoders.encode_and_gate
-        """
-        pass
-
-    def test_is_noop_on_empty_inputs(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        under_test = self.get_bv_gate_encoder_under_test()
-        result = under_test(clause_consumer, lit_factory,
-                            lhs_input_lits=[], rhs_input_lits=[], output_lits=[])
-        assert len(result) == 0
-        assert clause_consumer.get_num_clauses() == 0
-        assert lit_factory.get_num_variables() == 0
-
-    def test_throws_exception_when_input_vec_lengths_mismatch(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-        lits = [lit_factory.create_literal() for _ in range(10)]
-
-        # See assertion in __init__:
-        # noinspection PyCallByClass
-        # noinspection PyTypeChecker
-        with unittest.TestCase.assertRaises(self, ValueError):
-            under_test = self.get_bv_gate_encoder_under_test()
-            under_test(clause_consumer, lit_factory,
-                       lhs_input_lits=[lits[0]],
-                       rhs_input_lits=[lits[1], lits[2]],
-                       output_lits=[lits[3]])
-
-        assert clause_consumer.get_num_clauses() == 0
-        assert lit_factory.get_num_variables() == 10
-
-    def test_throws_exception_when_output_vec_length_mismatches(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-        lits = [lit_factory.create_literal() for _ in range(10)]
-
-        # See assertion in __init__:
-        # noinspection PyCallByClass
-        # noinspection PyTypeChecker
-        with unittest.TestCase.assertRaises(self, ValueError):
-            under_test = self.get_bv_gate_encoder_under_test()
-            under_test(clause_consumer, lit_factory,
-                       lhs_input_lits=[lits[0], lits[1]],
-                       rhs_input_lits=[lits[2], lits[3]],
-                       output_lits=[lits[4]])
-
-        assert clause_consumer.get_num_clauses() == 0
-        assert lit_factory.get_num_variables() == 10
-
-    def test_generates_literals_when_no_outputs_specified_at_all(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-        lits = [lit_factory.create_literal() for _ in range(10)]
-
-        under_test = self.get_bv_gate_encoder_under_test()
-        result = under_test(clause_consumer, lit_factory,
-                            lhs_input_lits=[lits[0], lits[1]],
-                            rhs_input_lits=[lits[2], lits[3]],
-                            output_lits=None)
-
-        assert lit_factory.get_num_variables() == 12
-        assert len(result) == 2
-        assert all(x not in lits and -x not in lits for x in result)
-        assert all(lit_factory.has_literal(x) for x in result)
-
-    def test_generates_literals_for_unspecified_outputs(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-        lits = [lit_factory.create_literal() for _ in range(10)]
-
-        under_test = self.get_bv_gate_encoder_under_test()
-        result = under_test(clause_consumer, lit_factory,
-                            lhs_input_lits=[lits[0], lits[1]],
-                            rhs_input_lits=[lits[2], lits[3]],
-                            output_lits=[lits[4], None])
-
-        assert len(result) == 2
-        assert lit_factory.get_num_variables() == 11
-        assert result[1] not in lits and -result[1] not in lits
-        assert lit_factory.has_literal(result[1])
-
-    def test_creates_unary_bv_gate(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-        lits = [lit_factory.create_literal() for _ in range(10)]
-
-        under_test = self.get_bv_gate_encoder_under_test()
-        under_test(clause_consumer, lit_factory,
-                   lhs_input_lits=[lits[1]], rhs_input_lits=[lits[2]],
-                   output_lits=[lits[3]])
-
-        expected_clause_consumer = CollectingClauseConsumer()
-        basic_ge_of_under_test = self.get_basic_gate_encoder_of_bv_gate_encoder()
-        basic_ge_of_under_test(expected_clause_consumer, lit_factory, [lits[1], lits[2]], lits[3])
-
-        assert(clause_consumer.get_clauses_in_consumption_order() ==
-               expected_clause_consumer.get_clauses_in_consumption_order())
-
-    def test_creates_ternary_bv_gate(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-        lits = [lit_factory.create_literal() for _ in range(32)]
-
-        under_test = self.get_bv_gate_encoder_under_test()
-        under_test(clause_consumer, lit_factory,
-                   lhs_input_lits=[lits[10], lits[20], lits[30]],
-                   rhs_input_lits=[lits[11], lits[21], lits[31]],
-                   output_lits=[lits[1], lits[2], lits[3]])
-
-        expected_clause_consumer = CollectingClauseConsumer()
-        basic_ge_of_under_test = self.get_basic_gate_encoder_of_bv_gate_encoder()
-        basic_ge_of_under_test(expected_clause_consumer, lit_factory, [lits[10], lits[11]], lits[1])
-        basic_ge_of_under_test(expected_clause_consumer, lit_factory, [lits[20], lits[21]], lits[2])
-        basic_ge_of_under_test(expected_clause_consumer, lit_factory, [lits[30], lits[31]], lits[3])
-
-        assert(clause_consumer.get_clauses_in_consumption_order() ==
-               expected_clause_consumer.get_clauses_in_consumption_order())
-
-
-class TestEncodeBVAndGate(unittest.TestCase, AbstractTestBasicBitvectorGateEncoder):
-
-    def get_bv_gate_encoder_under_test(self):
-        return cscl.bitvector_gate_encoders.encode_bv_and_gate
-
-    def get_basic_gate_encoder_of_bv_gate_encoder(self):
-        return cscl.basic_gate_encoders.encode_and_gate
-
-
-class TestEncodeBVOrGate(unittest.TestCase, AbstractTestBasicBitvectorGateEncoder):
-
-    def get_bv_gate_encoder_under_test(self):
-        return cscl.bitvector_gate_encoders.encode_bv_or_gate
-
-    def get_basic_gate_encoder_of_bv_gate_encoder(self):
-        return cscl.basic_gate_encoders.encode_or_gate
-
-
-class TestEncodeBVXorGate(unittest.TestCase, AbstractTestBasicBitvectorGateEncoder):
-
-    def get_bv_gate_encoder_under_test(self):
-        return cscl.bitvector_gate_encoders.encode_bv_xor_gate
-
-    def get_basic_gate_encoder_of_bv_gate_encoder(self):
-        return cscl.basic_gate_encoders.encode_binary_xor_gate
 
 
 def int_to_bitvec(i, result_width):
@@ -820,10 +644,11 @@ class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
         is supposed to satisfy.
 
         :param gate_arity: A nonzero, non-negative integer.
-        :return: A tuple [x_1, x_2, ..., x_(2^gate_arity)] with, for all 1 <= i <= 2^gate_arity, x_i is a tuple
+        :return: A tuple [x_1, x_2, ..., x_(2^(gate_arity+1))] with, for all 1 <= i <= 2^(gate_arity+1), x_i is a tuple
                  (l+r, o) with l, r, o being tuples of length `gate_arity` containing elements in {0, 1}.
                  l signifies the left-hand-side input assignment, r signifies the right-hand-side
-                 assignment, o signifies the output assignment.
+                 assignment, o signifies the output assignment. If there are two tuples (x, y1) and (x, y2), then
+                 y1 = y2.
         """
 
     @abc.abstractmethod
@@ -1011,9 +836,62 @@ class AbstractTruthTableBasedBitvectorPredicateGateTest(AbstractTruthTableBasedB
         return True
 
 
+def generate_truth_table_for_binary_op(gate_arity: int, binary_op):
+    """
+    Generates a truth table using the given binary operation on integers.
+
+    :param gate_arity: The gate's arity.
+    :param binary_op: A function mapping two integers to an integer.
+    :return: The truth table for a gate applying binary_op to the input bitvectors. Only the first `gate_arity`
+             bits of the result of invoking binary_op are considered. The returned object is a truth table in
+             the sense of AbstractTruthTableBasedBitvectorGateTest's documentation, with all possible input assignments
+             occurring in the truth table.
+    """
+    truth_table = []
+    for lhs, rhs in itertools.product(range(0, 2 ** gate_arity), range(0, 2 ** gate_arity)):
+        output = binary_op(lhs, rhs)
+        table_entry = (int_to_bitvec(lhs, gate_arity) + int_to_bitvec(rhs, gate_arity),
+                       int_to_bitvec(output, gate_arity))
+        truth_table.append(table_entry)
+    return truth_table
+
+
+class TestEncodeBVAndGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
+    """
+    Test for bvg.encode_bv_and_gate
+    """
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_and_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        return generate_truth_table_for_binary_op(gate_arity, lambda x, y: x & y)
+
+
+class TestEncodeBVOrGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
+    """
+    Test for bvg.encode_bv_or_gate
+    """
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_or_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        return generate_truth_table_for_binary_op(gate_arity, lambda x, y: x | y)
+
+
+class TestEncodeBVXorGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
+    """
+    Test for bvg.encode_bv_xor_gate
+    """
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_xor_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        return generate_truth_table_for_binary_op(gate_arity, lambda x, y: x ^ y)
+
+
 class TestEncodeBvRippleCarrySubGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
     """
-    Test for bvg.encode_bv_ripple_carry_sub_gate()
+    Test for bvg.encode_bv_ripple_carry_sub_gate
     """
     def get_bitvector_gate_encoder_under_test(self):
         return bvg.encode_bv_ripple_carry_sub_gate
