@@ -3,7 +3,6 @@ import unittest
 import itertools
 import cscl.bitvector_gate_encoders as bvg
 import cscl.interfaces as cscl_if
-import cscl.basic_gate_encoders
 from tests.testutils.trivial_sat_solver import TrivialSATSolver
 from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
@@ -455,160 +454,6 @@ class TestEncodeParallelBVMultiplierGateEncoder(unittest.TestCase, AbstractTestU
         return bvg.encode_bv_parallel_mul_gate
 
 
-class AbstractBinaryBitvectorPredicateTest(abc.ABC):
-    def __init__(self):
-        # This mixin may only be used with test cases, since it uses assertRaises:
-        assert isinstance(self, unittest.TestCase)
-
-    @abc.abstractmethod
-    def get_bv_predicate_encoder_under_test(self):
-        """
-        Gets the bitvector gate encoder under test.
-
-        :return: the bitvector gate encoder under test, a function having the same
-                 signature as the encode_bv_unsigned_leq_gate function.
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_predicate(self):
-        """
-        Gets the (integer-level) predicate to construct the gate's truth table.
-
-        :return: A function f(lhs: int, rhs: int, width: int) -> bool, with lhs and rhs being the arguments of the
-                 predicate, and width specifying how many consecutive bits (starting with the least significant bit)
-                 of lhs rsp. rhs are relevant.
-        """
-
-    def __create_truth_table(self, width: int):
-        predicate = self.get_predicate()
-        truth_table = []
-        for lhs, rhs in itertools.product(range(0, 2**width), range(0, 2**width)):
-            p_value = 1 if predicate(lhs, rhs, width) else 0
-            table_entry = ((int_to_bitvec(lhs, width), int_to_bitvec(rhs, width)), p_value)
-            truth_table.append(table_entry)
-        return truth_table
-
-    def __truth_table_based_test(self, width):
-        encoder_under_test = self.get_bv_predicate_encoder_under_test()
-        truth_table = self.__create_truth_table(width)
-
-        checker = TrivialSATSolver()
-        clause_consumer = LoggingClauseConsumerDecorator(checker)
-        lhs_lits = [checker.create_literal() for _ in range(0, width)]
-        rhs_lits = [checker.create_literal() for _ in range(0, width)]
-
-        output_lit = encoder_under_test(clause_consumer, checker, lhs_lits, rhs_lits)
-        for table_entry in truth_table:
-            input_setting, output_setting = table_entry
-            lhs_setting, rhs_setting = input_setting
-
-            probe_lhs = apply_truth_table_setting(lhs_lits, lhs_setting)
-            probe_rhs = apply_truth_table_setting(rhs_lits, rhs_setting)
-            probe_out = output_lit if output_setting == 1 else -output_lit
-
-            # Check that the truth table setting satisfies the gate encoding:
-            assumptions_pos = probe_lhs + probe_rhs + [probe_out]
-            is_satisfiable_pos = checker.solve(assumptions_pos)
-            assert is_satisfiable_pos, "Expected the gate encoding to be satisfied for truth table entry " + \
-                                       str(table_entry) + ", but it is not.\n" + \
-                                       "Encoding:\n" + clause_consumer.to_string() + \
-                                       "\nAssumptions: " + str(assumptions_pos)
-
-            # Check that the gate encodes a functional relation:
-            assumptions_neg = probe_lhs + probe_rhs + [-probe_out]
-            is_satisfiable_neg = checker.solve(assumptions_pos)
-            assert is_satisfiable_neg, "The gate encoding does not embody a functional relation for inputs of truth" + \
-                                       "table entry " + str(table_entry) + ".\n" + \
-                                       "Encoding:\n" + clause_consumer.to_string() + \
-                                       "\nAssumptions: " + str(assumptions_neg)
-
-    def test_conforms_to_truth_table_for_bv_width_1(self):
-        self.__truth_table_based_test(1)
-
-    def test_conforms_to_truth_table_for_bv_width_2(self):
-        self.__truth_table_based_test(2)
-
-    def test_conforms_to_truth_table_for_bv_width_3(self):
-        self.__truth_table_based_test(3)
-
-    def test_conforms_to_truth_table_for_bv_width_4(self):
-        self.__truth_table_based_test(4)
-
-    # TODO: The following methods are similar to their counterparts in AbstractTestUnsignedBVMultiplierGate,
-    #       maybe make these a mixin?
-    def test_refuses_input_bv_with_length_mismatch(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 2)]
-
-        encoder_under_test = self.get_bv_predicate_encoder_under_test()
-        # See assertion in __init__:
-        # noinspection PyCallByClass
-        # noinspection PyTypeChecker
-        with unittest.TestCase.assertRaises(self, ValueError):
-            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
-
-    def test_returns_output_literals(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        output_lit = lit_factory.create_literal()
-
-        encoder_under_test = self.get_bv_predicate_encoder_under_test()
-        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lit)
-        assert result == output_lit
-
-    def test_creates_output_literal_if_none_provided(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        all_inputs = lhs_input_lits + rhs_input_lits
-
-        encoder_under_test = self.get_bv_predicate_encoder_under_test()
-        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
-        assert (result not in all_inputs) and (-result not in all_inputs)
-
-
-class TestEncodeBVUnsignedLessThanOrEqualCompGate(unittest.TestCase, AbstractBinaryBitvectorPredicateTest):
-    def get_bv_predicate_encoder_under_test(self):
-        return bvg.encode_bv_ule_gate
-
-    def get_predicate(self):
-        return lambda l, r, width: (l & (2**width - 1)) <= (r & (2**width - 1))
-
-
-class TestEncodeBVSignedLessThanOrEqualCompGate(unittest.TestCase, AbstractBinaryBitvectorPredicateTest):
-    def get_bv_predicate_encoder_under_test(self):
-        return bvg.encode_bv_sle_gate
-
-    def get_predicate(self):
-        def __sign_extend(x: int, from_width: int):
-            assert from_width > 0
-            sign = 1 if (x & (1 << (from_width-1))) != 0 else 0
-            sign_extension_mask = ~((1 << from_width) - 1)
-            if sign == 0:
-                return x & ~sign_extension_mask
-            else:
-                return x | sign_extension_mask
-
-        return lambda l, r, width: __sign_extend(l, width) <= __sign_extend(r, width)
-
-
-class TestEncodeBVEqualityCompGate(unittest.TestCase, AbstractBinaryBitvectorPredicateTest):
-    def get_bv_predicate_encoder_under_test(self):
-        return bvg.encode_bv_eq_gate
-
-    def get_predicate(self):
-        return lambda l, r, width: (l & (2**width - 1)) == (r & (2**width - 1))
-
-
 class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
     """
     Base class for truth-table-based bitvector-gate tests.
@@ -827,14 +672,37 @@ class AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest(AbstractTruthTabl
         return lhs_input_lits+rhs_input_lits, output_lits
 
 
-class AbstractTruthTableBasedBitvectorPredicateGateTest(AbstractTruthTableBasedBitvectorGateTest):
+class AbstractTruthTableBasedPlainBitvectorPredicateGateTest(AbstractTruthTableBasedBitvectorGateTest):
     """
     Base class for truth-table-based bitvector-gate tests where the encoded gate's output is a single
-    literal.
+    literal, where the bitvector encoder takes no more arguments than
+        - clause_consumer: the clause consumer
+        - lit_factory: the literal factory
+        - lhs_input_lits, rhs_input_lits: the lhs rsp. rhs input literals
+        - output_lit: the output literal (optional argument)
     """
+
+    def encode_gate_under_test(self, clause_consumer: cscl_if.ClauseConsumer,
+                               lit_factory: cscl_if.CNFLiteralFactory, gate_arity: int):
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, gate_arity)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, gate_arity)]
+
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        output_lit = encoder_under_test(clause_consumer=clause_consumer,
+                                        lit_factory=lit_factory,
+                                        lhs_input_lits=lhs_input_lits,
+                                        rhs_input_lits=rhs_input_lits)
+
+        return lhs_input_lits+rhs_input_lits, [output_lit]
+
+
     def is_encoder_under_test_bv_predicate(self):
         return True
 
+
+#
+# Tests for "plain" bitvector functions (and, or, xor, subtraction):
+#
 
 def generate_truth_table_for_binary_op(gate_arity: int, binary_op):
     """
@@ -904,3 +772,78 @@ class TestEncodeBvRippleCarrySubGate(unittest.TestCase, AbstractTruthTableBasedP
                            int_to_bitvec(output, gate_arity))
             truth_table.append(table_entry)
         return truth_table
+
+
+#
+# Tests for binary predicates (sle, ule, equality):
+#
+
+def generate_truth_table_for_bv_predicate(gate_arity: int, predicate):
+    """
+    Generates a truth table using the given binary predicate on integers.
+
+    :param gate_arity: The gate's arity.
+    :param predicate: A function mapping tuples (l, r, w) to a bool, with all but the lowermost w bits of l and r being
+                      ignored.
+    :return: The truth table for a gate applying predicate to the input bitvectors.
+             The returned object is a truth table in the sense of AbstractTruthTableBasedBitvectorGateTest's
+             documentation, with all possible input assignments occurring in the truth table.
+    """
+    truth_table = []
+    for lhs, rhs in itertools.product(range(0, 2 ** gate_arity), range(0, 2 ** gate_arity)):
+        output = predicate(lhs, rhs, gate_arity)
+        table_entry = (int_to_bitvec(lhs, gate_arity) + int_to_bitvec(rhs, gate_arity),
+                       (1,) if output is True else (0,))
+        truth_table.append(table_entry)
+    return truth_table
+
+
+class TestEncodeBVUnsignedLessThanOrEqualCompGate(unittest.TestCase,
+                                                  AbstractTruthTableBasedPlainBitvectorPredicateGateTest):
+    """
+    Test for bvg.encode_bv_ule_gate
+    """
+
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_ule_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        predicate = lambda l, r, width: (l & (2**width - 1)) <= (r & (2**width - 1))
+        return generate_truth_table_for_bv_predicate(gate_arity, predicate)
+
+
+class TestEncodeBVSignedLessThanOrEqualCompGate(unittest.TestCase,
+                                                AbstractTruthTableBasedPlainBitvectorPredicateGateTest):
+    """
+    Test for bvg.encode_bv_sle_gate
+    """
+
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_sle_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        def __sign_extend(x: int, from_width: int):
+            assert from_width > 0
+            sign = 1 if (x & (1 << (from_width-1))) != 0 else 0
+            sign_extension_mask = ~((1 << from_width) - 1)
+            if sign == 0:
+                return x & ~sign_extension_mask
+            else:
+                return x | sign_extension_mask
+
+        predicate = lambda l, r, width: __sign_extend(l, width) <= __sign_extend(r, width)
+        return generate_truth_table_for_bv_predicate(gate_arity, predicate)
+
+
+class TestEncodeBVEqualityCompGate(unittest.TestCase,
+                                   AbstractTruthTableBasedPlainBitvectorPredicateGateTest):
+    """
+    Test for bvg.encode_bv_eq_gate
+    """
+
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_eq_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        predicate = lambda l, r, width: (l & (2**width - 1)) == (r & (2**width - 1))
+        return generate_truth_table_for_bv_predicate(gate_arity, predicate)
