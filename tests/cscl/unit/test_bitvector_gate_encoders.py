@@ -281,179 +281,6 @@ class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
         self.__truthtable_based_test(4, use_carry_in=True, use_carry_out=True)
 
 
-class AbstractTestUnsignedBVMultiplierGate(abc.ABC):
-
-    def __init__(self):
-        # This mixin may only be used with test cases, since it uses assertRaises:
-        assert isinstance(self, unittest.TestCase)
-
-    @abc.abstractmethod
-    def get_bv_umul_encoder_under_test(self):
-        """
-        Gets the bitvector gate encoder under test.
-
-        :return: the bitvector gate encoder under test, a function having the same
-                 signature as the encode_bv_and_gate function.
-        """
-        pass
-
-    def __test_for_truth_table(self, arity, use_overflow_lit, truth_table):
-        encoder_under_test = self.get_bv_umul_encoder_under_test()
-
-        for table_entry in truth_table:
-            input_setting, output_setting = table_entry
-            lhs_setting, rhs_setting = input_setting
-            output_setting, overflow_setting = output_setting
-
-            checker = TrivialSATSolver()
-            clause_consumer = LoggingClauseConsumerDecorator(checker)
-
-            lhs_input_lits = [checker.create_literal() for _ in range(0, arity)]
-            rhs_input_lits = [checker.create_literal() for _ in range(0, arity)]
-            overflow_lit = checker.create_literal() if use_overflow_lit else None
-
-            output_lits = encoder_under_test(clause_consumer, checker,
-                                             lhs_input_lits, rhs_input_lits, overflow_lit=overflow_lit)
-
-            probe_lhs = apply_truth_table_setting(lhs_input_lits, lhs_setting)
-            probe_rhs = apply_truth_table_setting(rhs_input_lits, rhs_setting)
-            probe_output = apply_truth_table_setting(output_lits, output_setting)
-            if use_overflow_lit:
-                probe_output.append(overflow_lit if overflow_setting > 0 else -overflow_lit)
-
-            probe_input = probe_lhs + probe_rhs
-
-            # Check that the setting satisfies the constraint
-            assumptions_pos = probe_input + probe_output
-            has_correct_value = checker.solve(assumptions_pos)
-            if not has_correct_value:
-                if checker.solve(probe_input):
-                    print("The gate forces an incorrect model:")
-                    checker.print_model()
-                else:
-                    print("The gate has no satisfiable assignment for this input configuration")
-
-            assert has_correct_value,\
-                "Encoding failed for truth table entry " + str(table_entry) + "\n(should be satisfiable, but is not)" \
-                + "\nEncoding:\n" + clause_consumer.to_string() \
-                + "\nAssumptions: " + str(assumptions_pos)
-
-            # Check that no other output setting satisfies the constraint
-            clause_consumer.consume_clause([-x for x in probe_output])
-            assumptions_neg = probe_input
-            is_functional_rel = not checker.solve(assumptions_neg)
-            if not is_functional_rel:
-                print("Unexpectedly found model:")
-                checker.print_model()
-            assert is_functional_rel,\
-                "Encoding failed for truth table entry " + str(table_entry) + "\n(function property violated)"\
-                + "\nEncoding:\n" + clause_consumer.to_string()\
-                + "\nAssumptions: " + str(assumptions_neg)
-
-    @staticmethod
-    def __generate_full_truth_table(input_width):
-        result = []
-
-        for lhs_setting in range(0, 2 ** input_width):
-            for rhs_setting in range(0, 2 ** input_width):
-                expected_output = lhs_setting * rhs_setting
-                expected_overflow = 1 if ((expected_output >> input_width) != 0) else 0
-                expected_output = expected_output & ((1 << input_width) - 1)
-                input_setting = (int_to_bitvec(lhs_setting, input_width),
-                                 int_to_bitvec(rhs_setting, input_width))
-                output_setting = (int_to_bitvec(expected_output, input_width),
-                                  expected_overflow)
-                result.append((input_setting, output_setting))
-        return result
-
-    def __truthtable_based_test(self, input_width, use_overflow_lit):
-        truth_table = self.__generate_full_truth_table(input_width=input_width)
-        self.__test_for_truth_table(input_width, use_overflow_lit=use_overflow_lit, truth_table=truth_table)
-
-    def test_for_bv_width_1_no_overflow_out(self):
-        self.__truthtable_based_test(1, use_overflow_lit=False)
-
-    def test_for_bv_width_1_with_overflow_out(self):
-        self.__truthtable_based_test(1, use_overflow_lit=True)
-
-    def test_for_bv_width_2_no_overflow_out(self):
-        self.__truthtable_based_test(2, use_overflow_lit=False)
-
-    def test_for_bv_width_2_with_overflow_out(self):
-        self.__truthtable_based_test(2, use_overflow_lit=True)
-
-    def test_for_bv_width_3_no_overflow_out(self):
-        self.__truthtable_based_test(3, use_overflow_lit=False)
-
-    def test_for_bv_width_3_with_overflow_out(self):
-        self.__truthtable_based_test(3, use_overflow_lit=True)
-
-    def test_for_bv_width_4_no_overflow_out(self):
-        self.__truthtable_based_test(4, use_overflow_lit=False)
-
-    def test_for_bv_width_4_with_overflow_out(self):
-        self.__truthtable_based_test(4, use_overflow_lit=True)
-
-    def test_refuses_input_bv_with_length_mismatch(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 2)]
-
-        encoder_under_test = self.get_bv_umul_encoder_under_test()
-        # See assertion in __init__:
-        # noinspection PyCallByClass
-        # noinspection PyTypeChecker
-        with unittest.TestCase.assertRaises(self, ValueError):
-            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
-
-    def test_refuses_output_bv_with_length_mismatch(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        output_lits = [lit_factory.create_literal() for _ in range(0, 2)]
-
-        encoder_under_test = self.get_bv_umul_encoder_under_test()
-        # See assertion in __init__:
-        # noinspection PyCallByClass
-        # noinspection PyTypeChecker
-        with unittest.TestCase.assertRaises(self, ValueError):
-            encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
-
-    def test_uses_returns_output_literals(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        output_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-
-        encoder_under_test = self.get_bv_umul_encoder_under_test()
-        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
-        assert result == output_lits
-
-    def test_creates_output_literals_if_none_provided(self):
-        lit_factory = TestLiteralFactory()
-        clause_consumer = CollectingClauseConsumer()
-
-        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, 3)]
-        all_inputs = lhs_input_lits + rhs_input_lits
-
-        encoder_under_test = self.get_bv_umul_encoder_under_test()
-        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
-        assert not any(x in all_inputs for x in result)
-        assert not any(-x in all_inputs for x in result)
-
-
-class TestEncodeParallelBVMultiplierGateEncoder(unittest.TestCase, AbstractTestUnsignedBVMultiplierGate):
-    def get_bv_umul_encoder_under_test(self):
-        return bvg.encode_bv_parallel_mul_gate
-
-
 class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
     """
     Base class for truth-table-based bitvector-gate tests.
@@ -847,3 +674,67 @@ class TestEncodeBVEqualityCompGate(unittest.TestCase,
     def generate_truth_table(self, gate_arity: int):
         predicate = lambda l, r, width: (l & (2**width - 1)) == (r & (2**width - 1))
         return generate_truth_table_for_bv_predicate(gate_arity, predicate)
+
+
+#
+# Tests for binary multiplier gates:
+#
+
+class TestEncodeParallelBVMultiplierGateEncoder(AbstractTruthTableBasedBitvectorToBitvectorGateTest,
+                                                abc.ABC):
+    """
+    Test for bvg.encode_bv_parallel_mul_gate
+    """
+
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_parallel_mul_gate
+
+    @abc.abstractmethod
+    def is_test_with_overflow_output(self) -> bool:
+        pass
+
+    def generate_truth_table(self, gate_arity: int):
+        result = []
+        include_overflow_bit = self.is_test_with_overflow_output()
+
+        for lhs_setting in range(0, 2 ** gate_arity):
+            for rhs_setting in range(0, 2 ** gate_arity):
+                expected_output = lhs_setting * rhs_setting
+                expected_overflow = 1 if ((expected_output >> gate_arity) != 0) else 0
+                expected_output = expected_output & ((1 << gate_arity) - 1)
+
+                input_setting = int_to_bitvec(lhs_setting, gate_arity) + int_to_bitvec(rhs_setting, gate_arity)
+                output_setting = int_to_bitvec(expected_output, gate_arity) + \
+                    (expected_overflow,) if include_overflow_bit else tuple()
+                result.append((input_setting, output_setting))
+        return result
+
+    def encode_gate_under_test(self, clause_consumer: cscl_if.ClauseConsumer,
+                               lit_factory: cscl_if.CNFLiteralFactory, gate_arity: int):
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, gate_arity)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, gate_arity)]
+        overflow_lit = lit_factory.create_literal() if self.is_test_with_overflow_output() else None
+
+        encoder_under_test = self.get_bitvector_gate_encoder_under_test()
+        output_lits = encoder_under_test(clause_consumer=clause_consumer,
+                                         lit_factory=lit_factory,
+                                         lhs_input_lits=lhs_input_lits,
+                                         rhs_input_lits=rhs_input_lits,
+                                         overflow_lit=overflow_lit)
+
+        if overflow_lit is None:
+            return lhs_input_lits+rhs_input_lits, output_lits
+        else:
+            return lhs_input_lits+rhs_input_lits, (output_lits + [overflow_lit])
+
+
+class TestEncodeParallelBVMultiplierGateEncoderWithOverflowLit(unittest.TestCase,
+                                                               TestEncodeParallelBVMultiplierGateEncoder):
+    def is_test_with_overflow_output(self) -> bool:
+        return True
+
+
+class TestEncodeParallelBVMultiplierGateEncoderWithoutOverflowLit(unittest.TestCase,
+                                                                  TestEncodeParallelBVMultiplierGateEncoder):
+    def is_test_with_overflow_output(self) -> bool:
+        return False
