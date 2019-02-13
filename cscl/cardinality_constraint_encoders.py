@@ -1,3 +1,9 @@
+"""Cardinality constraint encoders
+
+This module provides at-most-k constraint encoders. An at-most-k constraint encoding for a set L of literals
+is satisfied if and only if no more than k elements in L have the value assignment 'true'.
+"""
+
 from cscl.interfaces import CNFLiteralFactory
 
 

@@ -1,3 +1,9 @@
+"""Bitvector constraint encoders
+
+This module provides constraint encoders for gate-like constraints on bitvectors (ie. arrays of literals), such as
+bitwise boolean functions and modulo arithmetic.
+"""
+
 from cscl.interfaces import CNFLiteralFactory, ClauseConsumer
 import cscl.basic_gate_encoders as gates
 

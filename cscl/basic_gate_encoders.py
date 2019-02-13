@@ -1,3 +1,9 @@
+"""Basic gate-constraint encoders
+
+This module contains constraint encoders for gate constraints with a single
+output literal (e.g. `o <-> AND(i_1, i_2, ..., i_N)`).
+"""
+
 from cscl.interfaces import ClauseConsumer, CNFLiteralFactory
 
 # TODO: support Plaisted-Greenbaum encoders
