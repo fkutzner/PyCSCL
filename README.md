@@ -1,13 +1,23 @@
 # PyCSCL
 
 PyCSCL is a collection of boolean constraint encoders. You can use it
-e.g. to reduce hard combinatorial problems to the [Boolean satisifability
-problem (SAT)](https://en.wikipedia.org/wiki/Boolean_satisfiability_problem).
+e.g. to reduce instances of
+[NP-complete problems](https://en.wikipedia.org/wiki/NP-completeness) to instances
+of the
+[Boolean satisifability (SAT) problem](https://en.wikipedia.org/wiki/Boolean_satisfiability_problem),
+benefitting from the availability of powerful off-the-shelf SAT
+solvers.
 
 Though PyCSCL is designed not to depend on a specific SAT solver interface,
 it contains a simple and easy-to-use binding for
 SAT solvers implementing the 
 [IPASIR](https://github.com/biotomas/ipasir) interface.
+
+## Documentation
+
+* PyCSCL [tutorial](Tutorial.md)
+* [Examples](#examples)
+* pydoc
 
 ## Encoders
 
