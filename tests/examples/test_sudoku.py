@@ -1,5 +1,7 @@
 import unittest
-from examples.sudoku import *
+import itertools
+import math
+from examples.sudoku import SudokuBoard, SudokuSolver
 from tests.testutils.trivial_sat_solver import TrivialSATSolver
 
 

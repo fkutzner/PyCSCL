@@ -1,8 +1,8 @@
 import math
 import itertools
 
-from cscl.interfaces import *
-from cscl.cardinality_constraint_encoders import *
+from cscl.interfaces import SatSolver, ClauseConsumer, CNFLiteralFactory
+from cscl.cardinality_constraint_encoders import encode_at_most_k_constraint_binomial
 
 
 class SudokuBoard:
@@ -223,9 +223,6 @@ class SudokuProblemEncoder:
         # Flag signifying whether self.__lazy_encode_general_sudoku_constraints() has been called.
         self.__has_created_general_sudoku_constraints = False
 
-        # Flag signifying whether a full board encoding has been passed to the clause consumer
-        self.__has_created_full_encoding = False
-
         try:
             self.__box_size = positive_int_square(num_symbols)
         except ValueError:
@@ -320,30 +317,6 @@ class SudokuProblemEncoder:
         board_indices = itertools.product(range(0, board.get_size()), range(0, board.get_size()))
         return [self.__at[i][j][board.get(i, j)-1] for i, j in board_indices if board.get(i, j) is not None]
 
-    def encode_with_required_fixed_assignments(self, board: SudokuBoard):
-        """
-        Passes a full encoding of the Sudoku problem represented by `board` to the clause consumer.
-
-        If get_required_fixed_assignments() has already been called, only the board-specific additional clauses
-        are passed to the clause consumer.
-
-        This method may only be called once.
-
-        :param board: A Sudoku board of size num_symbols x num_symbols
-        :raises RuntimeError when this method has already been called.
-        :raises ValueError if the board has an illegal size.
-        :return: None
-        """
-        if self.__has_created_full_encoding:
-            raise RuntimeError("This method may only be called once")
-        if board.get_size() != self.__num_symbols:
-            raise ValueError("Illegal board size")
-
-        for lit in self.get_required_fixed_assignments(board):
-            self.__clause_consumer.consume_clause([lit])
-
-        self.__has_created_full_encoding = True
-
 
 class SudokuSolver:
 
@@ -365,7 +338,7 @@ class SudokuSolver:
         self.__num_symbols = num_symbols
 
         if sudoku_problem_encoder is None:
-            self.__encoder = SudokuProblemEncoder(self.__sat_solver, sat_solver, num_symbols)
+            self.__encoder = SudokuProblemEncoder(sat_solver, sat_solver, num_symbols)
         else:
             self.__encoder = sudoku_problem_encoder
 
