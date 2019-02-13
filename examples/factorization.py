@@ -19,13 +19,12 @@ def create_uint_bitvec_constant(clause_consumer: ClauseConsumer,
     if constant < 0 or size < 0:
         raise ValueError("Illegal constant or size argument")
 
-    result = [lit_factory.create_literal() for _ in range(0, size)]
-    for i in range(0, size):
-        if (constant & (1 << i)) != 0:
-            clause_consumer.consume_clause([result[i]])
-        else:
-            clause_consumer.consume_clause([-result[i]])
-    return result
+    if size == 0:
+        return []
+
+    constantly_true = lit_factory.create_literal()
+    clause_consumer.consume_clause([constantly_true])
+    return [constantly_true if (constant & (1 << i)) != 0 else -constantly_true for i in range(0, size)]
 
 
 def bitvec_to_uint(bitvec, solver: SatSolver):
@@ -59,7 +58,7 @@ def factorize(x: int, solver: SatSolver):
 
     n_bits = math.ceil(math.log2(x))+1
 
-    # Fix the multiplication output:
+    # Create a bitvector constant for x:
     x_constant = create_uint_bitvec_constant(solver, solver, x, n_bits)
 
     # Create input literals:
@@ -70,17 +69,18 @@ def factorize(x: int, solver: SatSolver):
     solver.consume_clause(lhs[1:])
     solver.consume_clause(rhs[1:])
 
-    # Encode a multiplier whose overflow output is required to be false in all solutions:
-    pin_to_false = solver.create_literal()
-    solver.consume_clause([-pin_to_false])
+    # Encode the constraint x_constant = lhs * rhs. Overflow arithmetic is disabled by pinning
+    # the value of the multiplication constraint's overflow literal to `false`:
+    constantly_false = solver.create_literal()
+    solver.consume_clause([-constantly_false])
     bv.encode_bv_parallel_mul_gate(clause_consumer=solver,
                                    lit_factory=solver,
                                    lhs_input_lits=lhs,
                                    rhs_input_lits=rhs,
                                    output_lits=x_constant,
-                                   overflow_lit=pin_to_false)
+                                   overflow_lit=constantly_false)
 
-    solution_found = solver.solve([])
+    solution_found = solver.solve(assumptions=[])
     if not solution_found:
         return None
     else:
