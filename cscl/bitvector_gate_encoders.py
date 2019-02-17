@@ -472,13 +472,13 @@ def encode_bv_mux_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralF
 
 
 def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                                  lhs_input_lits, rhs_input_lits, output_lits=None):
+                             lhs_input_lits, rhs_input_lits, output_lits=None):
     """
     Encodes a bitvector division gate using the "restoring" integer division algorithm (see e.g.
-    https://en.wikipedia.org/wiki/Division_algorithm#Restoring_division), for unsigned integers.
-    This division implementation is one of the simplest.
+    https://en.wikipedia.org/wiki/Division_algorithm#Integer_division_(unsigned)_with_remainder), for unsigned integers.
+    This division encoding is one of the simplest and likely very inefficient.
 
-    Caveat: This is an inefficient prototype implementation.
+    This divider sets x/0 = 0 for all possible inputs x.
 
     :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
     :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
@@ -507,18 +507,35 @@ def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
 
     quotient = __create_fresh_lits(width)
 
-    remainder=[constantly_false]*width
+    remainder = list()
     for step_idx in reversed(range(0, width)):
-        remainder = [lhs_input_lits[step_idx]] + remainder[0:-1]
+        remainder = [lhs_input_lits[step_idx]] + remainder
 
-        encode_bv_ule_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
-                           lhs_input_lits=rhs_input_lits, rhs_input_lits=remainder, output_lit=quotient[step_idx])
+        # storing the comparison remainder>=divisior in quotient[step_idx]
+        if len(remainder) == len(rhs_input_lits):
+            # divisor has exaxtly as many bits as remainder: perform a direct comparison
+            encode_bv_ule_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                               lhs_input_lits=rhs_input_lits, rhs_input_lits=remainder, output_lit=quotient[step_idx])
+        else:
+            # divisor has more bits than the remainder. Save some variable introductions by comparing the divisor's
+            # extra bits separately:
+            lower_bit_comparison = encode_bv_ule_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                                                      lhs_input_lits=rhs_input_lits[0:len(remainder)],
+                                                      rhs_input_lits=remainder)
+            extra_bits = rhs_input_lits[len(remainder):]
+            extra_bits_comparison = (gates.encode_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                                                          input_lits=extra_bits)
+                                     if len(extra_bits) > 1 else extra_bits[0])
+            gates.encode_and_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                                  input_lits=[lower_bit_comparison, -extra_bits_comparison],
+                                  output_lit=quotient[step_idx])
 
         remainder_minus_divisor = encode_bv_ripple_carry_sub_gate(clause_consumer=clause_consumer,
                                                                   lit_factory=lit_factory,
                                                                   lhs_input_lits=remainder,
-                                                                  rhs_input_lits=rhs_input_lits)
+                                                                  rhs_input_lits=rhs_input_lits[0:len(remainder)])
 
+        # If remainder>=divisior, then remainder := remainder - divisor
         remainder = encode_bv_mux_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
                                        lhs_input_lits=remainder_minus_divisor, rhs_input_lits=remainder,
                                        select_lhs_lit=quotient[step_idx])
