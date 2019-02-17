@@ -427,3 +427,43 @@ def encode_bv_eq_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFa
     differences = encode_bv_xor_gate(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
     gates.encode_or_gate(clause_consumer, lit_factory, differences, -output_lit)
     return output_lit
+
+
+def encode_bv_mux_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                       lhs_input_lits, rhs_input_lits, select_lhs_lit=None, output_lits=None):
+    """
+    Encodes a bitvector multiplexer gate. The gate's output literals are forced to equal lhs_input_lits if
+    select_lhs_lit has the value True. If select_lhs_lit has the value False, the output literals are forced
+    to equal rhs_input_lits.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals.
+    :param rhs_input_lits: The list of right-hand-side input literals.
+    :param select_lhs_lit: The selector literal controlling whether the output literals are tied to lhs_input_lits
+                           or to rhs_input_lits. If select_lhs_lit is None, this gate represents the arbitrary
+                           choice of an element in {lhs_input_lits, rhs_input_lits}.
+    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
+                        each having a new variable, are created. Otherwise, output_lits must be a list
+                        with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :return: The list of gate output literals in LSB-to-MSB order, containing len(lhs_input_literals) literals.
+             The i'th literal of output_lits represents the value of the expression
+             `if selector_lit then lhs_input_lits[i] else lhs_input_lits[i]`.
+    """
+    select_lhs_lit = lit_factory.create_literal() if select_lhs_lit is None else select_lhs_lit
+
+    lhs_selection = encode_bv_and_gate(clause_consumer=clause_consumer,
+                                       lit_factory=lit_factory,
+                                       lhs_input_lits=lhs_input_lits,
+                                       rhs_input_lits=[select_lhs_lit]*len(lhs_input_lits))
+    rhs_selection = encode_bv_and_gate(clause_consumer=clause_consumer,
+                                       lit_factory=lit_factory,
+                                       lhs_input_lits=rhs_input_lits,
+                                       rhs_input_lits=[-select_lhs_lit]*len(rhs_input_lits))
+    return encode_bv_or_gate(clause_consumer=clause_consumer,
+                             lit_factory=lit_factory,
+                             lhs_input_lits=lhs_selection,
+                             rhs_input_lits=rhs_selection,
+                             output_lits=output_lits)

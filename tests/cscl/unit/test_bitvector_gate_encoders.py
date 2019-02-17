@@ -424,7 +424,19 @@ class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
             else [lit_factory.create_literal() for _ in range(0, 3)]
 
         encoder_under_test = self.get_bitvector_gate_encoder_under_test()
-        result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits, output_lits)
+        if self.is_encoder_under_test_bv_predicate():
+            result = encoder_under_test(clause_consumer=clause_consumer,
+                                        lit_factory=lit_factory,
+                                        lhs_input_lits=lhs_input_lits,
+                                        rhs_input_lits=rhs_input_lits,
+                                        output_lit=output_lits)
+        else:
+            result = encoder_under_test(clause_consumer=clause_consumer,
+                                        lit_factory=lit_factory,
+                                        lhs_input_lits=lhs_input_lits,
+                                        rhs_input_lits=rhs_input_lits,
+                                        output_lits=output_lits)
+
         assert result == output_lits
 
     def test_creates_output_literals_if_none_provided(self):
@@ -738,3 +750,45 @@ class TestEncodeParallelBVMultiplierGateEncoderWithoutOverflowLit(unittest.TestC
                                                                   TestEncodeParallelBVMultiplierGateEncoder):
     def is_test_with_overflow_output(self) -> bool:
         return False
+
+
+#
+# Tests for bitvector MUX:
+#
+
+class TestEncodeBVMuxGateEncoder(unittest.TestCase,
+                                 AbstractTruthTableBasedBitvectorToBitvectorGateTest):
+    """
+    Test for bvg.encode_bv_mux_gate
+    """
+
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_mux_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        result = []
+
+        for lhs_setting in range(0, 2 ** gate_arity):
+            for rhs_setting in range(0, 2 ** gate_arity):
+                for select_lhs_setting in (0, 1):
+                    expected_output = lhs_setting if select_lhs_setting is 1 else rhs_setting
+
+                    input_setting = int_to_bitvec(lhs_setting, gate_arity) + int_to_bitvec(rhs_setting, gate_arity) \
+                        + int_to_bitvec(select_lhs_setting, 1)
+                    output_setting = int_to_bitvec(expected_output, gate_arity)
+                    result.append((input_setting, output_setting))
+        return result
+
+    def encode_gate_under_test(self, clause_consumer: cscl_if.ClauseConsumer,
+                               lit_factory: cscl_if.CNFLiteralFactory, gate_arity: int):
+        lhs_input_lits = [lit_factory.create_literal() for _ in range(0, gate_arity)]
+        rhs_input_lits = [lit_factory.create_literal() for _ in range(0, gate_arity)]
+        select_lhs_lit = lit_factory.create_literal()
+
+        output_lits = bvg.encode_bv_mux_gate(clause_consumer=clause_consumer,
+                                             lit_factory=lit_factory,
+                                             lhs_input_lits=lhs_input_lits,
+                                             rhs_input_lits=rhs_input_lits,
+                                             select_lhs_lit=select_lhs_lit)
+
+        return lhs_input_lits+rhs_input_lits+[select_lhs_lit], output_lits
