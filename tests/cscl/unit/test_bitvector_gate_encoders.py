@@ -792,3 +792,25 @@ class TestEncodeBVMuxGateEncoder(unittest.TestCase,
                                              select_lhs_lit=select_lhs_lit)
 
         return lhs_input_lits+rhs_input_lits+[select_lhs_lit], output_lits
+
+
+#
+# Tests for bitvector division:
+#
+
+class TestEncodeBvLongUDivGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
+    """
+    Test for bvg.encode_bv_restoring_udiv_gate
+    """
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_long_udiv_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        truth_table = []
+        for lhs, rhs in itertools.product(range(0, 2**gate_arity), range(0, 2**gate_arity)):
+            output = int(lhs/rhs) if rhs != 0 else 0
+            table_entry = (int_to_bitvec(lhs, gate_arity) + int_to_bitvec(rhs, gate_arity),
+                           int_to_bitvec(output, gate_arity))
+            truth_table.append(table_entry)
+
+        return truth_table

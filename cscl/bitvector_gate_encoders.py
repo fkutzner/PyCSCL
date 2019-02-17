@@ -159,6 +159,8 @@ def encode_bv_ripple_carry_adder_gate(clause_consumer: ClauseConsumer, lit_facto
     if output_lits is None:
         output_lits = [lit_factory.create_literal() for _ in range(0, width)]
 
+    output_lits = [o if o is not None else lit_factory.create_literal() for o in output_lits]
+
     # Carries: carries[i] is the carry-out of full-adder no. i for i in range(0,width)
     # If carries[i] is None, the carry output is irrelevant and does not need to be encoded
     carries = [lit_factory.create_literal() for _ in range(0, width-1)]
@@ -467,3 +469,63 @@ def encode_bv_mux_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralF
                              lhs_input_lits=lhs_selection,
                              rhs_input_lits=rhs_selection,
                              output_lits=output_lits)
+
+
+def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                                  lhs_input_lits, rhs_input_lits, output_lits=None):
+    """
+    Encodes a bitvector division gate using the "restoring" integer division algorithm (see e.g.
+    https://en.wikipedia.org/wiki/Division_algorithm#Restoring_division), for unsigned integers.
+    This division implementation is one of the simplest.
+
+    Caveat: This is an inefficient prototype implementation.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
+    :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
+                           rhs_input_lits must be the same as the length of lhs_input_lits.
+    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
+                        each having a new variable, are created. Otherwise, output_lits must be a list
+                        with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :return: The list of gate output literals in LSB-to-MSB order, containing len(lhs_input_literals) literals.
+             The i'th literal of output_lits signifies the i'th bit of the quotient.
+    """
+    width = len(lhs_input_lits)
+    if len(rhs_input_lits) != width or (output_lits is not None and len(output_lits) != width):
+        raise ValueError("Mismatching bitvector sizes")
+    if width == 0:
+        return []
+
+    def __create_fresh_lits(n):
+        return [lit_factory.create_literal() for _ in range(0, n)]
+
+    constantly_false = lit_factory.create_literal()
+    clause_consumer.consume_clause([-constantly_false])
+
+    quotient = __create_fresh_lits(width)
+
+    remainder=[constantly_false]*width
+    for step_idx in reversed(range(0, width)):
+        remainder = [lhs_input_lits[step_idx]] + remainder[0:-1]
+
+        encode_bv_ule_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                           lhs_input_lits=rhs_input_lits, rhs_input_lits=remainder, output_lit=quotient[step_idx])
+
+        remainder_minus_divisor = encode_bv_ripple_carry_sub_gate(clause_consumer=clause_consumer,
+                                                                  lit_factory=lit_factory,
+                                                                  lhs_input_lits=remainder,
+                                                                  rhs_input_lits=rhs_input_lits)
+
+        remainder = encode_bv_mux_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                                       lhs_input_lits=remainder_minus_divisor, rhs_input_lits=remainder,
+                                       select_lhs_lit=quotient[step_idx])
+
+    rhs_is_zero = -gates.encode_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                                        input_lits=rhs_input_lits)
+
+    return encode_bv_mux_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                              lhs_input_lits=[constantly_false]*width, rhs_input_lits=quotient,
+                              select_lhs_lit=rhs_is_zero, output_lits=output_lits)
