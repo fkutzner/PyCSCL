@@ -509,9 +509,9 @@ def encode_staggered_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
 
 
 def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                             lhs_input_lits, rhs_input_lits, output_lits=None):
+                             lhs_input_lits, rhs_input_lits, output_lits=None, remainder_output_lits=None):
     """
-    Encodes a bitvector division gate using the "restoring" integer division algorithm (see e.g.
+    Encodes a bitvector division gate using the "long" integer division algorithm (see e.g.
     https://en.wikipedia.org/wiki/Division_algorithm#Integer_division_(unsigned)_with_remainder), for unsigned integers.
     This division encoding is one of the simplest and likely very inefficient.
 
@@ -527,11 +527,15 @@ def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
+    :param remainder_output_lits: The list of remainder literals in LSB-to-MSB order, or None. If remainder_lits
+                                  is not None, it must contain exactly as many literals as `lhs_input_lits`, and
+                                  it will be constrained to represent the remainder of the division.
     :return: The list of gate output literals in LSB-to-MSB order, containing len(lhs_input_literals) literals.
              The i'th literal of output_lits signifies the i'th bit of the quotient.
     """
     width = len(lhs_input_lits)
-    if len(rhs_input_lits) != width or (output_lits is not None and len(output_lits) != width):
+    if len(rhs_input_lits) != width or (output_lits is not None and len(output_lits) != width)\
+            or (remainder_output_lits is not None and len(remainder_output_lits) != width):
         raise ValueError("Mismatching bitvector sizes")
     if width == 0:
         return []
@@ -580,7 +584,48 @@ def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
     rhs_is_zero = -gates.encode_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
                                         input_lits=rhs_input_lits)
 
+    # If the user specified remainder literals, use them when appropriate
+    if remainder_output_lits is not None:
+        encode_bv_and_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                           lhs_input_lits=[-rhs_is_zero] * width, rhs_input_lits=remainder,
+                           output_lits=remainder_output_lits)
+
     # Tie the gate output to False if rhs is 0:
     return encode_bv_and_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
                               lhs_input_lits=[-rhs_is_zero]*width, rhs_input_lits=quotient,
                               output_lits=output_lits)
+
+
+def encode_bv_long_urem_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                            lhs_input_lits, rhs_input_lits, output_lits=None):
+    """
+    Encodes a bitvector division remainder gate using the "long" integer division algorithm (see e.g.
+    https://en.wikipedia.org/wiki/Division_algorithm#Integer_division_(unsigned)_with_remainder), for unsigned integers.
+    This division encoding is one of the simplest and likely very inefficient.
+
+    This divider sets x/0 = 0 for all possible inputs x.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
+    :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
+                           rhs_input_lits must be the same as the length of lhs_input_lits.
+    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
+                        each having a new variable, are created. Otherwise, output_lits must be a list
+                        with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :return: The list of gate output literals in LSB-to-MSB order, containing len(lhs_input_literals) literals.
+             The i'th literal of output_lits signifies the i'th bit of the remainder.
+    """
+
+    if output_lits is None:
+        output_lits = [lit_factory.create_literal() for _ in lhs_input_lits]
+    else:
+        output_lits = [lit_factory.create_literal() if x is None else x for x in output_lits]
+
+    encode_bv_long_udiv_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                             lhs_input_lits=lhs_input_lits, rhs_input_lits=rhs_input_lits,
+                             remainder_output_lits=output_lits)
+
+    return output_lits

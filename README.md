@@ -38,7 +38,8 @@ Package: `cscl.basic_gate_encoders`
 - Bitvector AND, OR, XOR gates
 - Ripple-carry bitvector adder and (2's complement) subtractor gates
 - Parallel bitvector multiplier gate
-- Signed (2's complement) and unsigned bitvector comparison gate
+- Unsigned bitvector divider and modulo gate
+- Signed (2's complement) and unsigned bitvector comparison gates
 
 Package: `cscl.bitvector_gate_encoders`
 

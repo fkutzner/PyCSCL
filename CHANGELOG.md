@@ -14,7 +14,7 @@ Encoders:
 - Ripple-carry bitvector adder gate constraint encoder
 - Ripple-carry bitvector subtractor gate constraint encoder (for 2's complement signed integers)
 - Parallel bitvector multiplier gate constraint encoder
-- Unsigned bitvector divider gate (simple long division)
+- Unsigned bitvector divider and remainder gate constraint encoder (simple long division)
 - Signed (2's complement) and unsigned bitvector comparison gate constraint encoder
 
 Examples:

@@ -800,7 +800,7 @@ class TestEncodeBVMuxGateEncoder(unittest.TestCase,
 
 class TestEncodeBvLongUDivGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
     """
-    Test for bvg.encode_bv_restoring_udiv_gate
+    Test for bvg.encode_bv_long_udiv_gate
     """
     def get_bitvector_gate_encoder_under_test(self):
         return bvg.encode_bv_long_udiv_gate
@@ -809,6 +809,24 @@ class TestEncodeBvLongUDivGate(unittest.TestCase, AbstractTruthTableBasedPlainBi
         truth_table = []
         for lhs, rhs in itertools.product(range(0, 2**gate_arity), range(0, 2**gate_arity)):
             output = int(lhs/rhs) if rhs != 0 else 0
+            table_entry = (int_to_bitvec(lhs, gate_arity) + int_to_bitvec(rhs, gate_arity),
+                           int_to_bitvec(output, gate_arity))
+            truth_table.append(table_entry)
+
+        return truth_table
+
+
+class TestEncodeBvLongURemGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
+    """
+    Test for bvg.encode_bv_long_urem_gate
+    """
+    def get_bitvector_gate_encoder_under_test(self):
+        return bvg.encode_bv_long_urem_gate
+
+    def generate_truth_table(self, gate_arity: int):
+        truth_table = []
+        for lhs, rhs in itertools.product(range(0, 2**gate_arity), range(0, 2**gate_arity)):
+            output = (lhs % rhs) if rhs != 0 else 0
             table_entry = (int_to_bitvec(lhs, gate_arity) + int_to_bitvec(rhs, gate_arity),
                            int_to_bitvec(output, gate_arity))
             truth_table.append(table_entry)
