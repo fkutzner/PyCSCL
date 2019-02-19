@@ -471,6 +471,43 @@ def encode_bv_mux_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralF
                              output_lits=output_lits)
 
 
+def encode_staggered_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                             input_lits, output_lits=None):
+    """
+    Given a bitvector `[x_1, x_2, ..., x_n]`, returns a bitvector `[y_1, y_2, ..., y_n]` constrained
+    such that for all `1 <= i <= n`: `y_i <-> (x_i or x_{i+1} or ... or x_n)`
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param input_lits: The list of literals [x_1, x_2, ..., x_n]
+    :param output_lits: The list of output literals [y_1, y_2, ..., y_n], or None. If output_lits is none,
+                        N gate output literals, each having a new variable, are created. Otherwise, output_lits must be
+                        a list with length len(lhs_input_lits), with each contained element either being a literal
+                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
+                        created as the i'th output literal.
+    :return: literals `[y_1, y_2, ..., y_n]` constrained as described above.
+    """
+    width = len(input_lits)
+    if output_lits is not None and len(output_lits) != width:
+        raise ValueError("Mismatching bitvector sizes")
+    if width == 0:
+        return []
+
+    if output_lits is None:
+        result = [lit_factory.create_literal() for _ in range(0, width)]
+    else:
+        result = [out_lit if out_lit is not None else lit_factory.create_literal() for out_lit in output_lits]
+
+    gates.encode_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                         input_lits=[input_lits[-1]], output_lit=result[-1])
+
+    for idx in reversed(range(0, width-1)):
+        gates.encode_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                             input_lits=[input_lits[idx], result[idx+1]], output_lit=result[idx])
+
+    return result
+
+
 def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
                              lhs_input_lits, rhs_input_lits, output_lits=None):
     """
@@ -505,6 +542,9 @@ def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
     constantly_false = lit_factory.create_literal()
     clause_consumer.consume_clause([-constantly_false])
 
+    divisor_any_higher_bits_nonzero = encode_staggered_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                                                               input_lits=rhs_input_lits)
+
     quotient = __create_fresh_lits(width)
 
     remainder = list()
@@ -522,12 +562,9 @@ def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
             lower_bit_comparison = encode_bv_ule_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
                                                       lhs_input_lits=rhs_input_lits[0:len(remainder)],
                                                       rhs_input_lits=remainder)
-            extra_bits = rhs_input_lits[len(remainder):]
-            extra_bits_comparison = (gates.encode_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
-                                                          input_lits=extra_bits)
-                                     if len(extra_bits) > 1 else extra_bits[0])
+            higher_bits_comparison = divisor_any_higher_bits_nonzero[len(remainder)]
             gates.encode_and_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
-                                  input_lits=[lower_bit_comparison, -extra_bits_comparison],
+                                  input_lits=[lower_bit_comparison, -higher_bits_comparison],
                                   output_lit=quotient[step_idx])
 
         remainder_minus_divisor = encode_bv_ripple_carry_sub_gate(clause_consumer=clause_consumer,
@@ -543,6 +580,7 @@ def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
     rhs_is_zero = -gates.encode_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
                                         input_lits=rhs_input_lits)
 
-    return encode_bv_mux_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
-                              lhs_input_lits=[constantly_false]*width, rhs_input_lits=quotient,
-                              select_lhs_lit=rhs_is_zero, output_lits=output_lits)
+    # Tie the gate output to False if rhs is 0:
+    return encode_bv_and_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                              lhs_input_lits=[-rhs_is_zero]*width, rhs_input_lits=quotient,
+                              output_lits=output_lits)

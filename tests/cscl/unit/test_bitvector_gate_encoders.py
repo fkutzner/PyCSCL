@@ -795,7 +795,7 @@ class TestEncodeBVMuxGateEncoder(unittest.TestCase,
 
 
 #
-# Tests for bitvector division:
+# Tests for bitvector division encoders:
 #
 
 class TestEncodeBvLongUDivGate(unittest.TestCase, AbstractTruthTableBasedPlainBitvectorToBitvectorGateTest):
@@ -814,3 +814,52 @@ class TestEncodeBvLongUDivGate(unittest.TestCase, AbstractTruthTableBasedPlainBi
             truth_table.append(table_entry)
 
         return truth_table
+
+
+#
+# Tests for unary bitvector gate encoders:
+#
+
+class TestEncodeStaggeredOrGate(unittest.TestCase):
+
+    def test_returns_empty_list_when_no_inputs_provided(self):
+        clause_consumer = CollectingClauseConsumer()
+        lit_factory = TestLiteralFactory()
+        result = bvg.encode_staggered_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory, input_lits=[])
+        assert result == [], "Unexpected result " + str(result)
+
+    def test_raises_exception_when_input_and_output_sizes_mismatch(self):
+        clause_consumer = CollectingClauseConsumer()
+        lit_factory = TestLiteralFactory()
+        with self.assertRaises(ValueError):
+            bvg.encode_staggered_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory,
+                                         input_lits=[lit_factory.create_literal()],
+                                         output_lits=[lit_factory.create_literal(), lit_factory.create_literal()])
+
+    def test_encodes_equivalency_for_unary_input(self):
+        solver = TrivialSATSolver()
+        input_lit = solver.create_literal()
+        output_lit = solver.create_literal()
+        bvg.encode_staggered_or_gate(clause_consumer=solver, lit_factory=solver,
+                                     input_lits=[input_lit],
+                                     output_lits=[output_lit])
+
+        assert solver.solve([]) is True, "Without further constraints, the gate encoding must be satisfiable"
+        assert solver.solve([input_lit, -output_lit]) is False, "Unexpected: input not equivalent to output"
+        assert solver.solve([-input_lit, output_lit]) is False, "Unexpected: input not equivalent to output"
+
+    def test_is_staggered_or_gate_for_ternary_input(self):
+        for test_index in range(0, 8):
+            solver = TrivialSATSolver()
+            input_lits = [solver.create_literal() for _ in range(0, 3)]
+            output_lits = bvg.encode_staggered_or_gate(clause_consumer=solver, lit_factory=solver,
+                                                       input_lits=input_lits)
+            test_input = [input_lits[i] if (test_index & (1 << i)) != 0 else -input_lits[i] for i in range(0, 3)]
+            expected_output = [output_lits[i] if any(x > 0 for x in test_input[i:]) else -output_lits[i]
+                               for i in range(0, 3)]
+
+            maps_input = solver.solve(test_input + expected_output)
+            assert maps_input, "The gate under test violates its input/output spec"
+
+            solver.consume_clause([-o for o in expected_output])
+            assert not solver.solve(test_input), "Unexpected: encoding is not a gate encoding"
