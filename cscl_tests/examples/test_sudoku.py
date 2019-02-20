@@ -1,8 +1,8 @@
 import unittest
 import itertools
 import math
-from examples.sudoku import SudokuBoard, SudokuSolver
-from tests.testutils.trivial_sat_solver import TrivialSATSolver
+from cscl_examples.sudoku import SudokuBoard, SudokuSolver
+from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
 
 
 class TestSudokuBoard(unittest.TestCase):

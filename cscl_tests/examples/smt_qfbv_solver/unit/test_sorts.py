@@ -1,5 +1,5 @@
 import unittest
-import examples.smt_qfbv_solver.sorts as sorts
+import cscl_examples.smt_qfbv_solver.sorts as sorts
 
 
 class TestSortContext(unittest.TestCase):

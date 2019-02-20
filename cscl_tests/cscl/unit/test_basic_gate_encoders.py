@@ -1,8 +1,8 @@
 import abc
 from unittest import TestCase
 from cscl.basic_gate_encoders import *
-from tests.testutils.trivial_sat_solver import TrivialSATSolver
-from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
+from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
+from cscl_tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
 
 def encoder_returns_output_literal(encoder_fn):

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from tests.testutils.trivial_sat_solver import TrivialSATSolver
+from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
 
 
 class TestTrivialSATSolver(TestCase):

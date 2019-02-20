@@ -1,6 +1,6 @@
 import abc
 from typing import List
-import examples.smt_qfbv_solver.ast as ast
+import cscl_examples.smt_qfbv_solver.ast as ast
 
 
 class ASTTransformer(abc.ABC):

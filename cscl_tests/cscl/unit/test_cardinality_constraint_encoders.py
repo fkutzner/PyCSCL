@@ -1,8 +1,8 @@
 import unittest
 import abc
 from cscl.cardinality_constraint_encoders import *
-from tests.testutils.trivial_sat_solver import TrivialSATSolver
-from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
+from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
+from cscl_tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
 
 def has_k_bits_trivial(i, k):

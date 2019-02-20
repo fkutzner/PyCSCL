@@ -3,8 +3,8 @@ import unittest
 import itertools
 import cscl.bitvector_gate_encoders as bvg
 import cscl.interfaces as cscl_if
-from tests.testutils.trivial_sat_solver import TrivialSATSolver
-from tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
+from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
+from cscl_tests.testutils.logging_clause_consumer_decorator import LoggingClauseConsumerDecorator
 
 
 class TestLiteralFactory(cscl_if.CNFLiteralFactory):

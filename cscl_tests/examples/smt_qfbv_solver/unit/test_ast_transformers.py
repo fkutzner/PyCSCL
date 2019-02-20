@@ -1,7 +1,7 @@
 import unittest
-import examples.smt_qfbv_solver.ast as ast
-import examples.smt_qfbv_solver.ast_transformers as ast_trans
-import examples.smt_qfbv_solver.sorts as sorts
+import cscl_examples.smt_qfbv_solver.ast as ast
+import cscl_examples.smt_qfbv_solver.ast_transformers as ast_trans
+import cscl_examples.smt_qfbv_solver.sorts as sorts
 
 
 class TestFunctionDefinitionInliner(unittest.TestCase):

@@ -1,9 +1,9 @@
 # Integration tests for the S-Expression and SMTLib2 parsers
 
 import unittest
-from examples.smt_qfbv_solver.sexp_parser import lex_sexp, parse_sexp
-from examples.smt_qfbv_solver.smtlib2_parser import parse_smtlib2_problem
-import examples.smt_qfbv_solver.ast as ast
+from cscl_examples.smt_qfbv_solver.sexp_parser import lex_sexp, parse_sexp
+from cscl_examples.smt_qfbv_solver.smtlib2_parser import parse_smtlib2_problem
+import cscl_examples.smt_qfbv_solver.ast as ast
 
 
 class TestSExprParserAndSMTLib2ParserIntegration(unittest.TestCase):

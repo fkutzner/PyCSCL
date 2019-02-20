@@ -1,5 +1,5 @@
 from typing import Union
-import examples.smt_qfbv_solver.ast as ast
+import cscl_examples.smt_qfbv_solver.ast as ast
 
 
 class SyntacticFunctionScope:

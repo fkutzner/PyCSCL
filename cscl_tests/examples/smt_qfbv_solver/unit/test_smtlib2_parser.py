@@ -1,8 +1,8 @@
 import unittest
 from typing import List
-import examples.smt_qfbv_solver.smtlib2_parser as smt
-import examples.smt_qfbv_solver.sorts as sorts
-import examples.smt_qfbv_solver.ast as ast
+import cscl_examples.smt_qfbv_solver.smtlib2_parser as smt
+import cscl_examples.smt_qfbv_solver.sorts as sorts
+import cscl_examples.smt_qfbv_solver.ast as ast
 
 
 class TestParseSmtlib2Literal(unittest.TestCase):

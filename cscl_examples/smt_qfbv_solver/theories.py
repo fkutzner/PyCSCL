@@ -1,7 +1,7 @@
 import abc
-import examples.smt_qfbv_solver.sorts as sorts
-import examples.smt_qfbv_solver.syntactic_scope as synscope
-import examples.smt_qfbv_solver.ast as ast
+import cscl_examples.smt_qfbv_solver.sorts as sorts
+import cscl_examples.smt_qfbv_solver.syntactic_scope as synscope
+import cscl_examples.smt_qfbv_solver.ast as ast
 
 
 class TheorySyntacticFunctionScopeFactory(abc.ABC):

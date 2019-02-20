@@ -1,6 +1,6 @@
 import abc
 from typing import Tuple, Iterable, Union
-import examples.smt_qfbv_solver.sorts as sorts
+import cscl_examples.smt_qfbv_solver.sorts as sorts
 
 
 class ASTNode(abc.ABC):

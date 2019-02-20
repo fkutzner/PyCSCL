@@ -1,5 +1,5 @@
 import unittest
-import examples.smt_qfbv_solver.sexp_parser as sep
+import cscl_examples.smt_qfbv_solver.sexp_parser as sep
 
 
 class TestLexSExp(unittest.TestCase):

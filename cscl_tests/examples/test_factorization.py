@@ -1,6 +1,6 @@
 import unittest
-import examples.factorization as fact
-from tests.testutils.trivial_sat_solver import TrivialSATSolver
+import cscl_examples.factorization as fact
+from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
 
 
 class TestFactorization(unittest.TestCase):
