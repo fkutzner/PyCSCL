@@ -1,0 +1,7 @@
+include *.md
+include LICENSE
+include MANIFEST.in
+recursive-include cscl *.py
+recursive-include cscl_examples *.py
+recursive-include cscl_tests *.py
+prune __pycache__
