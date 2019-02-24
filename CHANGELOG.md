@@ -2,7 +2,7 @@
 
 This changelog's format is based on [keep a changelog 1.0.0](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [0.1.0] - 2019-02-24
 ### Added
 Encoders:
 - Binomial at-most-k constraint encoder

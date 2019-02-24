@@ -1,4 +1,4 @@
-# PyCSCL
+# PyCSCL 0.1.0
 
 PyCSCL is a collection of boolean constraint encoders. You can use it
 e.g. to reduce instances of
