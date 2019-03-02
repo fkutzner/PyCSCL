@@ -1,6 +1,7 @@
 # PyCSCL 0.2.0 (development version)
+The <b>C</b>ute <b>S</b>AT <b>C</b>onstraint encoder <b>L</b>ibrary for Python
 
-PyCSCL is a collection of boolean constraint encoders. You can use it
+PyCSCL is a collection of propositional logic constraint encoders. You can use it
 e.g. to reduce instances of
 [NP-complete problems](https://en.wikipedia.org/wiki/NP-completeness) to instances
 of the
