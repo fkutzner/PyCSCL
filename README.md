@@ -13,6 +13,8 @@ it contains a simple and easy-to-use binding for
 SAT solvers implementing the 
 [IPASIR](https://github.com/biotomas/ipasir) interface.
 
+The versioning scheme of PyCSCL is [Semantic Versioning 2.0.0](https://semver.org).
+
 ## Installing PyCSCL
 
 ### Release packages
