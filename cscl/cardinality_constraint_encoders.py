@@ -114,3 +114,27 @@ def encode_at_most_k_constraint_ltseq(lit_factory: CNFLiteralFactory, k: int, co
     result.append([-constrained_lits[n-1], -registers[n-2][k-1]])
 
     return result
+
+
+def chunks(l: list, chunk_size: int):
+    """
+    Partitions the given list into chunks of the given size (approximately).
+
+    :param l: A list.
+    :param chunk_size: An integer in the interval [1, len(l)].
+    :return: An iterable sequence of lists forming a partition of l, preserving the order of the elements in of l. Each
+             list L in this sequence has a length of at most chunk_size, with all but the last list in the returned
+             sequence having a length of chunk_size.
+    """
+    print("Chunk size: " + str(chunk_size))
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must not be 0 or negative")
+
+    total_items_yielded = 0
+    while total_items_yielded < len(l):
+        if total_items_yielded + chunk_size >= len(l):
+            yield l[total_items_yielded:]
+            total_items_yielded = len(l)
+        else:
+            yield l[total_items_yielded:total_items_yielded+chunk_size]
+            total_items_yielded += chunk_size

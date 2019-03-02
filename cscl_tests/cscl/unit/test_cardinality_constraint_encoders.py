@@ -204,3 +204,34 @@ class TestEncodeAtMostKConstraintBinomial(unittest.TestCase, AbstractEncodeAtMos
 class TestEncodeAtMostKConstraintLTSeq(unittest.TestCase, AbstractEncodeAtMostKConstraintTestCase):
     def get_encoder_fn(self):
         return encode_at_most_k_constraint_ltseq
+
+
+class TestChunks(unittest.TestCase):
+    def test_raises_for_negative_chunk_size(self):
+        with self.assertRaises(ValueError):
+            print("Go")
+            list(chunks([1], -1))
+
+    def test_raises_for_zero_chunk_size(self):
+        with self.assertRaises(ValueError):
+            list(chunks([1], 0))
+
+    def test_returns_empty_list(self):
+        result = list(chunks([], 2))
+        assert result == [], "Unexpected result " + str(result)
+
+    def test_chunks_single_element_list_with_chunk_size_1(self):
+        result = list(chunks([1], 1))
+        assert result == [[1]], "Unexpected result " + str(result)
+
+    def test_chunks_list_with_list_len_smaller_than_chunk_size(self):
+        result = list(chunks([1, 2, 3, 4, 5], 10))
+        assert result == [[1, 2, 3, 4, 5]], "Unexpected result " + str(result)
+
+    def test_chunks_list_with_list_len_not_divisible_by_chunk_size(self):
+        result = list(chunks([1, 2, 3, 4, 5], 3))
+        assert result == [[1, 2, 3], [4, 5]], "Unexpected result " + str(result)
+
+    def test_chunks_list_with_list_len_divisible_by_chunk_size(self):
+        result = list(chunks([1, 2, 3, 4, 5, 6], 3))
+        assert result == [[1, 2, 3], [4, 5, 6]], "Unexpected result " + str(result)
