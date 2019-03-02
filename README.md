@@ -13,6 +13,35 @@ it contains a simple and easy-to-use binding for
 SAT solvers implementing the 
 [IPASIR](https://github.com/biotomas/ipasir) interface.
 
+## Installing PyCSCL
+
+### Release packages
+
+PyCSCL releases are distributed on the [Python Package Index](https://pypi.org/project/pycscl/).
+To be consistent with package naming conventions, the PyCSCL package is named `pycscl`.
+To install the latest PyCSCL release package, you can simply use `pip`:
+
+```
+python3 -m pip install pycscl
+```
+
+### Custom packages
+
+Alternatively, you can check out this repository and install PyCSCL
+by creating a package yourself. Navigate to the PyCSCL directory and issue the command
+
+```
+python3 setup.py sdist 
+```
+
+This will create a package `pycscl-<Version>.tar.gz` file in the
+directory `dist`. Now, you can install your custom PyCSCL package 
+by running
+
+```
+python3 -m pip install <PathToPyCSCL>/dist/pycscl-<Version>.tar.gz
+```
+
 ## Documentation
 
 * PyCSCL [tutorial](Tutorial.md)
