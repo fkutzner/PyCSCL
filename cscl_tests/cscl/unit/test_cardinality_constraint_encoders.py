@@ -206,6 +206,11 @@ class TestEncodeAtMostKConstraintLTSeq(unittest.TestCase, AbstractEncodeAtMostKC
         return encode_at_most_k_constraint_ltseq
 
 
+class TestEncodeAtMostKConstraintCommander(unittest.TestCase, AbstractEncodeAtMostKConstraintTestCase):
+    def get_encoder_fn(self):
+        return encode_at_most_k_constraint_commander
+
+
 class TestChunks(unittest.TestCase):
     def test_raises_for_negative_chunk_size(self):
         with self.assertRaises(ValueError):

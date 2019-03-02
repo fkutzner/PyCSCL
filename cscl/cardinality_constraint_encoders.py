@@ -5,6 +5,7 @@ is satisfied if and only if no more than k elements in L have the value assignme
 """
 
 from cscl.interfaces import CNFLiteralFactory
+import itertools
 
 
 def subsets_of_size_k(collection, k):
@@ -138,3 +139,87 @@ def chunks(l: list, chunk_size: int):
         else:
             yield l[total_items_yielded:total_items_yielded+chunk_size]
             total_items_yielded += chunk_size
+
+
+def encode_at_least_k_constraint(lit_factory: CNFLiteralFactory, k: int, constrained_lits: list,
+                                 encode_at_most_k_constraint_fn):
+    """
+    Creates a CNF constraint C such that for all literal assignments L of C, the following holds:
+    At least k of the literals contained in constrained_lits are assigned true.
+
+    This encoder uses an at-most-k constraint encoder function to encode the at-least-k constraint.
+
+    :param lit_factory: The literal factory to be used for creating literals with new CNF variables.
+    :param k: See above.
+    :param constrained_lits: The literals to be constrained.
+    :param encode_at_most_k_constraint_fn: an at-most-k constraint encoder function.
+    :return: The constraint in CNF clausal form, a list of lists of literals.
+    """
+    return encode_at_most_k_constraint_fn(lit_factory, len(constrained_lits)-k, [-l for l in constrained_lits])
+
+
+def encode_exactly_k_constraint(lit_factory: CNFLiteralFactory, k: int, constrained_lits: list,
+                                encode_at_most_k_constraint_fn):
+    """
+    Creates a CNF constraint C such that for all literal assignments L of C, the following holds:
+    Exactly k of the literals contained in constrained_lits are assigned true.
+
+    This encoder uses an at-most-k constraint encoder function to encode the constraint.
+
+    :param lit_factory: The literal factory to be used for creating literals with new CNF variables.
+    :param k: See above.
+    :param constrained_lits: The literals to be constrained.
+    :param encode_at_most_k_constraint_fn: an at-most-k constraint encoder function.
+    :return: The constraint in CNF clausal form, a list of lists of literals.
+    """
+    return encode_at_most_k_constraint_fn(lit_factory, k, constrained_lits) \
+        + encode_at_least_k_constraint(lit_factory, k, constrained_lits, encode_at_most_k_constraint_fn)
+
+
+def encode_at_most_k_constraint_commander(lit_factory: CNFLiteralFactory, k: int, constrained_lits: list):
+    """
+    Creates a CNF constraint C such that for all literal assignments L of C, the following holds:
+    At most k of the literals contained in constrained_lits are assigned true.
+
+    See the cited paper for upper bounds on clauses rsp. variables added by this encoder.
+
+    Source for this encoding:
+     Frisch, Alan M., and Paul A. Giannaros. "Sat encodings of the at-most-k constraint. some old, some new, some fast,
+     some slow." Proc. of the Tenth Int. Workshop of Constraint Modelling and Reformulation. 2010.
+
+    :param lit_factory: The literal factory to be used for creating literals with new CNF variables.
+    :param k: See above.
+    :param constrained_lits: The literals to be constrained.
+    :return: The constraint in CNF clausal form, a list of lists of literals.
+    """
+    if k == 0:
+        return list(map(lambda x: [-x], constrained_lits))
+    if len(constrained_lits) <= 1 or len(constrained_lits) <= k:
+        # at-most-k constraint is always satisfied, don't add any constraining clauses
+        return []
+
+    # See the cited paper for a description of the encoding.
+
+    group_size = min(k+2, len(constrained_lits))
+    groups = list(chunks(constrained_lits, group_size))
+
+    # commanders[i][j] corresponds to c_{i,j} in the source paper:
+    commanders = [[lit_factory.create_literal() for _ in range(0, k)] for _ in groups]
+
+    # For each group, add at-least-k and at-most-k constraints for the group and its commander literals:
+    group_constraints = []
+    for idx, group in enumerate(groups):
+        group_with_commanders = group + [-c for c in commanders[idx]]
+        group_constraints += encode_exactly_k_constraint(lit_factory, k, group_with_commanders,
+                                                         encode_at_most_k_constraint_binomial)
+
+    # Break symmetries by ordering the commander literals:
+    order_commanders = [[-group_commanders[i], group_commanders[i+1]]
+                        for group_commanders, i in itertools.product(commanders, range(0, k-1))]
+
+    # At most k commander literals may be true at any time:
+    flat_commanders = [c for group_commanders in commanders for c in group_commanders]
+    at_most_k_commanders = encode_at_most_k_constraint_commander(lit_factory=lit_factory, k=k,
+                                                                 constrained_lits=flat_commanders)
+
+    return group_constraints + order_commanders + at_most_k_commanders
