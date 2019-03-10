@@ -59,8 +59,8 @@ def encode_bv_and_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralF
     :param lhs_input_lits: The list of left-hand-side input literals.
     :param rhs_input_lits: The list of right-hand-side input literals. The length of rhs_input_lits must
                            be the same as the length of lhs_input_lits.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
@@ -84,8 +84,8 @@ def encode_bv_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFa
     :param lhs_input_lits: The list of left-hand-side input literals.
     :param rhs_input_lits: The list of right-hand-side input literals. The length of rhs_input_lits must
                            be the same as the length of lhs_input_lits.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
@@ -110,8 +110,8 @@ def encode_bv_xor_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralF
     :param lhs_input_lits: The list of left-hand-side input literals.
     :param rhs_input_lits: The list of right-hand-side input literals. The length of rhs_input_lits must
                            be the same as the length of lhs_input_lits.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
@@ -136,8 +136,8 @@ def encode_bv_ripple_carry_adder_gate(clause_consumer: ClauseConsumer, lit_facto
     :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
     :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
                            rhs_input_lits must be the same as the length of lhs_input_lits.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
@@ -199,8 +199,8 @@ def encode_bv_ripple_carry_sub_gate(clause_consumer: ClauseConsumer, lit_factory
     :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
     :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
                            rhs_input_lits must be the same as the length of lhs_input_lits.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
@@ -227,8 +227,8 @@ def encode_bv_parallel_mul_gate(clause_consumer: ClauseConsumer, lit_factory: CN
     :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
     :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
                            rhs_input_lits must be the same as the length of lhs_input_lits.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
@@ -445,8 +445,8 @@ def encode_bv_mux_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralF
     :param select_lhs_lit: The selector literal controlling whether the output literals are tied to lhs_input_lits
                            or to rhs_input_lits. If select_lhs_lit is None, this gate represents the arbitrary
                            choice of an element in {lhs_input_lits, rhs_input_lits}.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
@@ -481,10 +481,10 @@ def encode_staggered_or_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
     :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
     :param input_lits: The list of literals [x_1, x_2, ..., x_n]
     :param output_lits: The list of output literals [y_1, y_2, ..., y_n], or None. If output_lits is none,
-                        N gate output literals, each having a new variable, are created. Otherwise, output_lits must be
-                        a list with length len(lhs_input_lits), with each contained element either being a literal
-                        or None. If the i'th entry of output_lits is None, a literal with a new variable is
-                        created as the i'th output literal.
+                        len(lhs_input_lits) gate output literals, each having a new variable, are created. Otherwise,
+                        output_lits must be a list with length len(lhs_input_lits), with each contained element either
+                        being a literal or None. If the i'th entry of output_lits is None, a literal with a new variable
+                        is created as the i'th output literal.
     :return: literals `[y_1, y_2, ..., y_n]` constrained as described above.
     """
     width = len(input_lits)
@@ -522,8 +522,8 @@ def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
     :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
     :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
                            rhs_input_lits must be the same as the length of lhs_input_lits.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
@@ -597,7 +597,7 @@ def encode_bv_long_udiv_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
 
 
 def encode_bv_long_urem_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
-                            lhs_input_lits, rhs_input_lits, output_lits=None):
+                             lhs_input_lits, rhs_input_lits, output_lits=None):
     """
     Encodes a bitvector division remainder gate using the "long" integer division algorithm (see e.g.
     https://en.wikipedia.org/wiki/Division_algorithm#Integer_division_(unsigned)_with_remainder), for unsigned integers.
@@ -610,8 +610,8 @@ def encode_bv_long_urem_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
     :param lhs_input_lits: The list of left-hand-side input literals, in LSB-to-MSB order.
     :param rhs_input_lits: The list of right-hand-side input literals, in LSB-to-MSB order. The length of
                            rhs_input_lits must be the same as the length of lhs_input_lits.
-    :param output_lits: The list of output literals, or None. If output_lits is none, N gate output literals,
-                        each having a new variable, are created. Otherwise, output_lits must be a list
+    :param output_lits: The list of output literals, or None. If output_lits is none, len(lhs_input_lits) gate output
+                        literals, each having a new variable, are created. Otherwise, output_lits must be a list
                         with length len(lhs_input_lits), with each contained element either being a literal
                         or None. If the i'th entry of output_lits is None, a literal with a new variable is
                         created as the i'th output literal.
