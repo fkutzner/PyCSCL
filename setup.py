@@ -3,7 +3,7 @@ import setuptools
 
 setup(
     name='pycscl',
-    version='0.2.0-dev',
+    version='0.2.0',
     author='Felix Kutzner',
     author_email='felixkutzner@gmail.com',
     url='https://github.com/fkutzner/PyCSCL',
