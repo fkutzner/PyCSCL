@@ -214,7 +214,6 @@ class TestEncodeAtMostKConstraintCommander(unittest.TestCase, AbstractEncodeAtMo
 class TestChunks(unittest.TestCase):
     def test_raises_for_negative_chunk_size(self):
         with self.assertRaises(ValueError):
-            print("Go")
             list(chunks([1], -1))
 
     def test_raises_for_zero_chunk_size(self):

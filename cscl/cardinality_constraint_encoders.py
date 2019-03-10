@@ -127,7 +127,6 @@ def chunks(l: list, chunk_size: int):
              list L in this sequence has a length of at most chunk_size, with all but the last list in the returned
              sequence having a length of chunk_size.
     """
-    print("Chunk size: " + str(chunk_size))
     if chunk_size <= 0:
         raise ValueError("chunk_size must not be 0 or negative")
 
