@@ -1,5 +1,5 @@
 # PyCSCL 0.2.0 (development version)
-The <b>C</b>ute <b>S</b>AT <b>C</b>onstraint encoder <b>L</b>ibrary for Python
+The <b>C</b>ute <b>S</b>AT <b>C</b>onstraint encoder <b>L</b>ibrary for Python 3
 
 PyCSCL is a collection of propositional logic constraint encoders. You can use it
 e.g. to reduce instances of
@@ -17,6 +17,10 @@ SAT solvers implementing the
 The versioning scheme of PyCSCL is [Semantic Versioning 2.0.0](https://semver.org).
 
 ## Installing PyCSCL
+
+### Prerequisites
+
+PyCSCL has no dependencies beyond Python 3.7.
 
 ### Release packages
 
@@ -56,6 +60,7 @@ python3 -m pip install <PathToPyCSCL>/dist/pycscl-<Version>.tar.gz
 ##### Cardinality (at-most-k) constraint encoders
 - Binomial encoding
 - LTSeq encoding
+- Commander encoding
 
 Package: `cscl.cardinality_constraint_encoders`
 
@@ -76,7 +81,7 @@ Package: `cscl.basic_gate_encoders`
 Package: `cscl.bitvector_gate_encoders`
 
 ## Examples
-- `examples.factorization`: [integer factorization](https://en.wikipedia.org/wiki/Integer_factorization) problem encoder
-- `examples.sudoku`: SAT-based [Sudoku](https://en.wikipedia.org/wiki/Sudoku) solver
-- `examples.smt_qfbv_solver` (under construction): simple QF_BV
+- `cscl_examples.factorization`: [integer factorization](https://en.wikipedia.org/wiki/Integer_factorization) problem encoder
+- `cscl_examples.sudoku`: SAT-based [Sudoku](https://en.wikipedia.org/wiki/Sudoku) solver
+- `cscl_examples.smt_qfbv_solver` (under construction): simple QF_BV
   [SMT](https://en.wikipedia.org/wiki/Satisfiability_modulo_theories) solver
