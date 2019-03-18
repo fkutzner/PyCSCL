@@ -26,7 +26,7 @@ class TestTrivialSATSolver(TestCase):
     def test_solve_problem_with_single_unit_clause(self):
         under_test = TrivialSATSolver()
         under_test.consume_clause([under_test.create_literal()])
-        assert (under_test.solve() is True)
+        self.assertTrue(under_test.solve())
 
     def test_solve_problem_with_noncontradictory_unit_clauses(self):
         under_test = TrivialSATSolver()
@@ -37,7 +37,7 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([variables[2]])
         under_test.consume_clause([variables[4]])
         under_test.consume_clause([-variables[5]])
-        assert (under_test.solve() is True)
+        self.assertTrue(under_test.solve())
 
     def test_solve_problem_with_contradictory_unit_clauses(self):
         under_test = TrivialSATSolver()
@@ -48,7 +48,7 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([variables[2]])
         under_test.consume_clause([variables[4]])
         under_test.consume_clause([-variables[4]])
-        assert (under_test.solve() is False)
+        self.assertFalse(under_test.solve())
 
     def test_solve_satisfiable_3sat_problem(self):
         under_test = TrivialSATSolver()
@@ -60,7 +60,7 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([-var[1], -var[7], var[5]])
         under_test.consume_clause([-var[3], -var[7], -var[0]])
         under_test.consume_clause([-var[9], -var[6], -var[1]])
-        assert (under_test.solve() is True)
+        self.assertTrue(under_test.solve())
 
     def test_solve_unsatisfiable_2sat_problem(self):
         under_test = TrivialSATSolver()
@@ -74,7 +74,7 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([var[4], var[1]])
         under_test.consume_clause([-var[4], var[7]])
         under_test.consume_clause([-var[7], -var[4]])
-        assert (under_test.solve() is False)
+        self.assertFalse(under_test.solve())
 
     def test_solve_3sat_problem_with_assumptions_sat(self):
         under_test = TrivialSATSolver()
@@ -86,7 +86,7 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([-var[1], -var[7], var[5]])
         under_test.consume_clause([-var[3], -var[7], -var[0]])
         under_test.consume_clause([-var[9], -var[6], var[1]])
-        assert (under_test.solve([var[1], var[7], var[6]]) is True)
+        self.assertTrue(under_test.solve([var[1], var[7], var[6]]))
 
     def test_solve_3sat_problem_with_assumptions_unsat(self):
         under_test = TrivialSATSolver()
@@ -98,7 +98,7 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([var[1], -var[7], -var[5]])
         under_test.consume_clause([-var[3], -var[7], -var[0]])
         under_test.consume_clause([-var[9], -var[6], var[1]])
-        assert (under_test.solve([-var[1], -var[3], var[7]]) is False)
+        self.assertFalse(under_test.solve([-var[1], -var[3], var[7]]))
 
     def test_get_forced_assignment(self):
         under_test = TrivialSATSolver()
@@ -110,15 +110,15 @@ class TestTrivialSATSolver(TestCase):
         under_test.consume_clause([-var[1], -var[7], var[5]])
         under_test.consume_clause([-var[3], -var[7], -var[0]])
         under_test.consume_clause([-var[9], -var[6], -var[1]])
-        assert (under_test.solve([var[1], var[7], var[6]]) is True)
+        self.assertTrue(under_test.solve([var[1], var[7], var[6]]))
 
-        assert (under_test.get_assignment(var[1]) is True)
-        assert (under_test.get_assignment(-var[1]) is False)
-        assert (under_test.get_assignment(var[7]) is True)
-        assert (under_test.get_assignment(-var[7]) is False)
-        assert (under_test.get_assignment(var[6]) is True)
-        assert (under_test.get_assignment(-var[6]) is False)
-        assert (under_test.get_assignment(var[5]) is True)
-        assert (under_test.get_assignment(-var[5]) is False)
-        assert (under_test.get_assignment(var[9]) is False)
-        assert (under_test.get_assignment(-var[9]) is True)
+        self.assertTrue(under_test.get_assignment(var[1]))
+        self.assertFalse(under_test.get_assignment(-var[1]))
+        self.assertTrue(under_test.get_assignment(var[7]))
+        self.assertFalse(under_test.get_assignment(-var[7]))
+        self.assertTrue(under_test.get_assignment(var[6]))
+        self.assertFalse(under_test.get_assignment(-var[6]))
+        self.assertTrue(under_test.get_assignment(var[5]))
+        self.assertFalse(under_test.get_assignment(-var[5]))
+        self.assertFalse(under_test.get_assignment(var[9]))
+        self.assertTrue(under_test.get_assignment(-var[9]))

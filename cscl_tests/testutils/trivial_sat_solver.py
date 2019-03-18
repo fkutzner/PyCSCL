@@ -147,7 +147,6 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
         return self.__solve(initial_var, False) or self.__solve(initial_var, True)
 
     def get_assignment(self, lit):
-        assert self.__last_model is not None
         var = abs(lit) - 1
         if var >= len(self.__last_model):
             return None
@@ -160,6 +159,5 @@ class TrivialSATSolver(cscl.interfaces.SatSolver):
         return abs(lit) <= self.__get_num_variables()
 
     def print_model(self):
-        assert self.__last_model is not None
         for i in range(0, self.__get_num_variables()):
             print("Var: " + str(i+1) + "\t Value: " + str(self.get_assignment(i+1)))
