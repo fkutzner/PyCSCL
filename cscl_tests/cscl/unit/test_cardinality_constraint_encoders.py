@@ -170,7 +170,7 @@ class AbstractEncodeAtMostKConstraintTestCase(abc.ABC):
         for k in range(0, amnt_constrained_lits + 2):
             checker = TrivialSATSolver()
             constrained_lits = []
-            for i in range(0, amnt_constrained_lits):
+            for _ in range(0, amnt_constrained_lits):
                 constrained_lits.append(checker.create_literal())
 
             constraint = encoder(checker, k, constrained_lits)

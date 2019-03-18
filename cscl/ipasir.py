@@ -60,7 +60,7 @@ class IPASIRSatSolverResource:
                     self.dso.ipasir_assume(self.solver, lit)
                 return self.dso.ipasir_solve(self.solver)
 
-            def get_assignment(self, var):
+            def get_assignment(self, lit):
                 ipasir_assignment = self.dso.ipasir_val(self.solver, var)
                 if ipasir_assignment == 0:
                     return None

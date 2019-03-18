@@ -37,8 +37,8 @@ def bitvec_to_uint(bitvec, solver: SatSolver):
              being the X'th bit of the result.
     """
     result = 0
-    for i in range(0, len(bitvec)):
-        bit = solver.get_assignment(bitvec[i])
+    for i, bit_literal in enumerate(bitvec):
+        bit = solver.get_assignment(bit_literal)
         if bit:
             result |= (1 << i)
     return result

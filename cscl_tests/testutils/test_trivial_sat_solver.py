@@ -5,23 +5,23 @@ from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
 class TestTrivialSATSolver(TestCase):
     def test_create_literal_is_int(self):
         under_test = TrivialSATSolver()
-        assert(isinstance(under_test.create_literal(), int))
+        self.assertTrue(isinstance(under_test.create_literal(), int))
 
     def test_create_literal_results_are_distinct(self):
         under_test = TrivialSATSolver()
         variables = []
-        for i in range(1, 1000):
+        for _ in range(1, 1000):
             variables.append(under_test.create_literal())
-        assert(len(variables) == len(set(variables)))
+        self.assertTrue(len(variables) == len(set(variables)))
 
     def test_solve_empty_problem(self):
         under_test = TrivialSATSolver()
-        assert(under_test.solve() is True)
+        self.assertTrue(under_test.solve() is True)
 
     def test_solve_problem_with_empty_clause(self):
         under_test = TrivialSATSolver()
         under_test.consume_clause([])
-        assert(under_test.solve() is False)
+        self.assertTrue(under_test.solve() is False)
 
     def test_solve_problem_with_single_unit_clause(self):
         under_test = TrivialSATSolver()
@@ -31,7 +31,7 @@ class TestTrivialSATSolver(TestCase):
     def test_solve_problem_with_noncontradictory_unit_clauses(self):
         under_test = TrivialSATSolver()
         variables = []
-        for i in range(1, 10):
+        for _ in range(1, 10):
             variables.append(under_test.create_literal())
 
         under_test.consume_clause([variables[2]])
@@ -42,7 +42,7 @@ class TestTrivialSATSolver(TestCase):
     def test_solve_problem_with_contradictory_unit_clauses(self):
         under_test = TrivialSATSolver()
         variables = []
-        for i in range(1, 10):
+        for _ in range(1, 10):
             variables.append(under_test.create_literal())
 
         under_test.consume_clause([variables[2]])
@@ -53,7 +53,7 @@ class TestTrivialSATSolver(TestCase):
     def test_solve_satisfiable_3sat_problem(self):
         under_test = TrivialSATSolver()
         var = []
-        for i in range(0, 10):
+        for _ in range(0, 10):
             var.append(under_test.create_literal())
 
         under_test.consume_clause([var[1], var[3], var[5]])
@@ -79,7 +79,7 @@ class TestTrivialSATSolver(TestCase):
     def test_solve_3sat_problem_with_assumptions_sat(self):
         under_test = TrivialSATSolver()
         var = []
-        for i in range(0, 10):
+        for _ in range(0, 10):
             var.append(under_test.create_literal())
 
         under_test.consume_clause([var[1], var[3], var[5]])
@@ -91,7 +91,7 @@ class TestTrivialSATSolver(TestCase):
     def test_solve_3sat_problem_with_assumptions_unsat(self):
         under_test = TrivialSATSolver()
         var = []
-        for i in range(0, 10):
+        for _ in range(0, 10):
             var.append(under_test.create_literal())
 
         under_test.consume_clause([var[1], var[3], var[5]])
@@ -103,7 +103,7 @@ class TestTrivialSATSolver(TestCase):
     def test_get_forced_assignment(self):
         under_test = TrivialSATSolver()
         var = []
-        for i in range(0, 10):
+        for _ in range(0, 10):
             var.append(under_test.create_literal())
 
         under_test.consume_clause([var[1], var[3], var[5]])

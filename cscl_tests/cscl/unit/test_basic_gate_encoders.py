@@ -8,7 +8,7 @@ from cscl_tests.testutils.logging_clause_consumer_decorator import LoggingClause
 def encoder_returns_output_literal(encoder_fn):
     checker = TrivialSATSolver()
     variables = []
-    for i in range(0, 10):
+    for _ in range(0, 10):
         variables.append(checker.create_literal())
 
     result = encoder_fn(checker, checker, [variables[0], variables[1]], variables[2])
@@ -18,7 +18,7 @@ def encoder_returns_output_literal(encoder_fn):
 def encoder_returns_new_output_literal_by_default(encoder_fn):
     checker = TrivialSATSolver()
     variables = []
-    for i in range(0, 10):
+    for _ in range(0, 10):
         variables.append(checker.create_literal())
 
     result = encoder_fn(checker, checker, [variables[0], variables[1]])
@@ -41,7 +41,7 @@ class TestEncodeOrGate(TestCase):
         """
         checker = TrivialSATSolver()
         inputs = []
-        for i in range(0, n):
+        for _ in range(0, n):
             inputs.append(checker.create_literal())
 
         output = encode_or_gate(checker, checker, inputs)
@@ -95,7 +95,7 @@ class TestEncodeAndGate(TestCase):
 
         checker = TrivialSATSolver()
         inputs = []
-        for i in range(0, n):
+        for _ in range(0, n):
             inputs.append(checker.create_literal())
 
         output = encode_and_gate(checker, checker, inputs)
@@ -142,7 +142,7 @@ def create_trivial_sat_solver_with_n_vars(n):
     """
     solver = TrivialSATSolver()
     variables = []
-    for i in range(0, n):
+    for _ in range(0, n):
         variables.append(solver.create_literal())
     return solver, variables
 

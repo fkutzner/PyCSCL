@@ -435,7 +435,7 @@ def parse_smtlib2_problem(parsed_sexp):
             if amnt < 0:
                 raise ValueError("Invalid negative argument for push command")
 
-            for i in range(0, amnt):
+            for _ in range(0, amnt):
                 new_scope = SyntacticFunctionScope(problem_toplevel_function_scope)
                 problem_toplevel_function_scope = new_scope
 
