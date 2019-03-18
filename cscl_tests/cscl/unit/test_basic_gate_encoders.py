@@ -27,10 +27,10 @@ def encoder_returns_new_output_literal_by_default(encoder_fn):
 
 class TestEncodeOrGate(TestCase):
     def test_encode_or_gate_returns_output_literal(self):
-        assert(encoder_returns_output_literal(encode_or_gate))
+        self.assertTrue(encoder_returns_output_literal(encode_or_gate))
 
     def test_encode_or_gate_returns_new_output_literal_by_default(self):
-        assert(encoder_returns_new_output_literal_by_default(encode_or_gate))
+        self.assertTrue(encoder_returns_new_output_literal_by_default(encode_or_gate))
 
     def encode_or_gate_n_ary_test_full(self, n):
         """
@@ -52,15 +52,15 @@ class TestEncodeOrGate(TestCase):
                 if (i & (1 << j)) != 0:
                     assumptions[j] = -assumptions[j]
             assumptions.append(-output)
-            assert (checker.solve(assumptions) is False)
+            self.assertFalse(checker.solve(assumptions))
             assumptions[n] = -assumptions[n]
-            assert (checker.solve(assumptions) is True)
+            self.assertTrue(checker.solve(assumptions))
 
         assumptions = list(map(lambda x: -x, inputs))
         assumptions.append(output)
-        assert (checker.solve(assumptions) is False)
+        self.assertFalse(checker.solve(assumptions))
         assumptions[n] = -assumptions[n]
-        assert (checker.solve(assumptions) is True)
+        self.assertTrue(checker.solve(assumptions))
 
     def test_encode_or_gate_create_nullary_or_gate(self):
         self.encode_or_gate_n_ary_test_full(0)
@@ -80,10 +80,10 @@ class TestEncodeOrGate(TestCase):
 
 class TestEncodeAndGate(TestCase):
     def test_encode_and_gate_returns_output_literal(self):
-        assert(encoder_returns_output_literal(encode_and_gate))
+        self.assertTrue(encoder_returns_output_literal(encode_and_gate))
 
     def test_encode_and_gate_returns_new_output_literal_by_default(self):
-        assert(encoder_returns_new_output_literal_by_default(encode_and_gate))
+        self.assertTrue(encoder_returns_new_output_literal_by_default(encode_and_gate))
 
     def encode_and_gate_n_ary_test_full(self, n):
         """
@@ -106,15 +106,15 @@ class TestEncodeAndGate(TestCase):
                 if (i & (1 << j)) != 0:
                     assumptions[j] = -assumptions[j]
             assumptions.append(-output)
-            assert (checker.solve(assumptions) is True)
+            self.assertTrue(checker.solve(assumptions))
             assumptions[n] = -assumptions[n]
-            assert (checker.solve(assumptions) is False)
+            self.assertFalse(checker.solve(assumptions))
 
         assumptions = inputs[:]
         assumptions.append(output)
-        assert (checker.solve(assumptions) is True)
+        self.assertTrue(checker.solve(assumptions))
         assumptions[n] = -assumptions[n]
-        assert (checker.solve(assumptions) is False)
+        self.assertFalse(checker.solve(assumptions))
 
     def test_encode_and_gate_create_nullary_and_gate(self):
         self.encode_and_gate_n_ary_test_full(0)
@@ -150,6 +150,10 @@ def create_trivial_sat_solver_with_n_vars(n):
 class AbstractTruthTableBasedGateTest(abc.ABC):
     """Abstract test case for testing gate encoders by checking their encoding via variable assignments"""
 
+    def __init__(self):
+        if not isinstance(self, TestCase):
+            raise RuntimeError("This mixin may only be used with test cases, since it uses assertRaises")
+
     @abc.abstractmethod
     def get_gate_encoder_under_test(self):
         """
@@ -184,15 +188,21 @@ class AbstractTruthTableBasedGateTest(abc.ABC):
         encoder_under_test = self.get_gate_encoder_under_test()
         checker, variables = create_trivial_sat_solver_with_n_vars(arity+1)
         result = encoder_under_test(checker, checker, variables[1:], variables[0])
-        assert result == variables[0]
+
+        # noinspection PyUnresolvedReferences
+        self.assertEqual(result, variables[0])
 
     def test_gate_returns_new_output_literal_by_default(self):
         arity = self.get_gate_arity()
         encoder_under_test = self.get_gate_encoder_under_test()
         checker, variables = create_trivial_sat_solver_with_n_vars(arity)
         result = encoder_under_test(checker, checker, variables)
-        assert checker.has_variable_of_lit(result)
-        assert result not in variables and -result not in variables
+
+        # noinspection PyUnresolvedReferences
+        self.assertTrue(checker.has_variable_of_lit(result))
+
+        # noinspection PyUnresolvedReferences
+        self.assertTrue(result not in variables and -result not in variables)
 
     def test_gate_fulfills_truth_table_spec(self):
         arity = self.get_gate_arity()
@@ -211,15 +221,18 @@ class AbstractTruthTableBasedGateTest(abc.ABC):
             expected_unsat_setting = list(input_lit_settings)
             expected_unsat_setting.append(output_lit if output_bit <= 0 else -output_lit)
 
-            assert checker.solve(expected_sat_setting) is True,\
-                "Gate failure for input setting " + str(input_bits) + ", output setting " + str(output_bit)\
-                + "\n(should be satisfiable, but is not)"
-            assert checker.solve(expected_unsat_setting) is False, \
-                "Gate failure for input setting " + str(input_bits) + ", output setting " + str(1-output_bit)\
-                + "\n(should not be satisfiable, but is)"
+            # noinspection PyUnresolvedReferences
+            self.assertTrue(checker.solve(expected_sat_setting),
+                            "Gate failure for input setting " + str(input_bits) + ", output setting "
+                            + str(output_bit) + "\n(should be satisfiable, but is not)")
+
+            # noinspection PyUnresolvedReferences
+            self.assertFalse(checker.solve(expected_unsat_setting),
+                             "Gate failure for input setting " + str(input_bits) + ", output setting "
+                             + str(1-output_bit) + "\n(should not be satisfiable, but is)")
 
 
-class TestEncodeBinaryXorGate(AbstractTruthTableBasedGateTest, TestCase):
+class TestEncodeBinaryXorGate(TestCase, AbstractTruthTableBasedGateTest):
 
     def get_gate_encoder_under_test(self):
         return encode_binary_xor_gate
@@ -234,7 +247,7 @@ class TestEncodeBinaryXorGate(AbstractTruthTableBasedGateTest, TestCase):
                 ((1, 1), 0))
 
 
-class TestEncodeBinaryMuxGate(AbstractTruthTableBasedGateTest, TestCase):
+class TestEncodeBinaryMuxGate(TestCase, AbstractTruthTableBasedGateTest):
 
     def get_gate_encoder_under_test(self):
         return encode_binary_mux_gate
@@ -253,7 +266,7 @@ class TestEncodeBinaryMuxGate(AbstractTruthTableBasedGateTest, TestCase):
                 ((1, 1, 1), 1))
 
 
-class TestEncodeFullAdderSumGate(AbstractTruthTableBasedGateTest, TestCase):
+class TestEncodeFullAdderSumGate(TestCase, AbstractTruthTableBasedGateTest):
 
     def get_gate_encoder_under_test(self):
         return encode_full_adder_sum_gate
@@ -272,7 +285,7 @@ class TestEncodeFullAdderSumGate(AbstractTruthTableBasedGateTest, TestCase):
                 ((1, 1, 1), 1))
 
 
-class TestEncodeFullAdderCarryGate(AbstractTruthTableBasedGateTest, TestCase):
+class TestEncodeFullAdderCarryGate(TestCase, AbstractTruthTableBasedGateTest):
 
     def get_gate_encoder_under_test(self):
         return encode_full_adder_carry_gate
@@ -321,7 +334,7 @@ class TestEncodeCNFConstraintAsGate(TestCase):
     def test_encode_cnf_constraint_as_gate_returns_output_literal(self):
         checker, variables = create_trivial_sat_solver_with_n_vars(10)
         result = encode_cnf_constraint_as_gate(checker, checker, [[variables[0]], [variables[1]]], variables[2])
-        assert result == variables[2]
+        self.assertEqual(result, variables[2])
 
     def test_encode_cnf_constraint_as_gate_returns_new_output_literal_by_default(self):
         checker, variables = create_trivial_sat_solver_with_n_vars(10)
@@ -332,19 +345,19 @@ class TestEncodeCNFConstraintAsGate(TestCase):
         checker, variables = create_trivial_sat_solver_with_n_vars(10)
         logging_checker = LoggingClauseConsumerDecorator(checker)
         output = encode_cnf_constraint_as_gate(logging_checker, checker, [])
-        assert (checker.solve([-output]) is False),\
-            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
-        assert (checker.solve([output]) is True),\
-            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+        self.assertFalse(checker.solve([-output]),
+                         "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")")
+        self.assertTrue(checker.solve([output]),
+                        "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")")
 
     def test_encode_cnf_constraint_as_gate_encodes_negation(self):
         checker, variables = create_trivial_sat_solver_with_n_vars(10)
         logging_checker = LoggingClauseConsumerDecorator(checker)
         output = encode_cnf_constraint_as_gate(logging_checker, checker, [[-variables[0]]])
-        assert (checker.solve([variables[0], output]) is False),\
-            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
-        assert (checker.solve([-variables[0], output]) is True),\
-            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+        self.assertFalse(checker.solve([variables[0], output]),
+                         "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")")
+        self.assertTrue(checker.solve([-variables[0], output]),
+                        "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")")
 
     def test_encode_cnf_constraint_as_gate_encodes_or(self):
         checker, variables = create_trivial_sat_solver_with_n_vars(10)
@@ -357,8 +370,8 @@ class TestEncodeCNFConstraintAsGate(TestCase):
         checker.consume_clause([-variables[1], variables[9]])
         create_miter_problem(checker, output, variables[9])
 
-        assert (checker.solve() is False), \
-            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+        self.assertFalse(checker.solve(),
+                         "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")")
 
     def test_encode_cnf_constraint_as_gate_encodes_xor(self):
         checker, variables = create_trivial_sat_solver_with_n_vars(10)
@@ -373,5 +386,5 @@ class TestEncodeCNFConstraintAsGate(TestCase):
         checker.consume_clause([-variables[0], variables[1], variables[9]])
         create_miter_problem(checker, output, variables[9])
 
-        assert (checker.solve() is False), \
-            "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")"
+        self.assertFalse(checker.solve(),
+                         "Bad encoding:\n" + logging_checker.to_string() + "(output: " + str(output) + ")")

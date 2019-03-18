@@ -45,14 +45,14 @@ class TestEncodeGateVector(unittest.TestCase):
         clause_consumer = CollectingClauseConsumer()
 
         def __should_not_be_called(*_):
-            assert False, "This function should not be called"
+            self.assertTrue(False, "This function should not be called")
 
         result = bvg.encode_gate_vector(clause_consumer, lit_factory,
                                         __should_not_be_called,
                                         lhs_input_lits=[], rhs_input_lits=[], output_lits=[])
-        assert len(result) == 0
-        assert clause_consumer.get_num_clauses() == 0
-        assert lit_factory.get_num_variables() == 0
+        self.assertEqual(len(result), 0)
+        self.assertEqual(clause_consumer.get_num_clauses(), 0)
+        self.assertEqual(lit_factory.get_num_variables(), 0)
 
     def test_throws_exception_when_input_vec_lengths_mismatch(self):
         lit_factory = TestLiteralFactory()
@@ -70,8 +70,8 @@ class TestEncodeGateVector(unittest.TestCase):
                                    rhs_input_lits=[lits[1], lits[2]],
                                    output_lits=[lits[3]])
 
-        assert clause_consumer.get_num_clauses() == 0
-        assert lit_factory.get_num_variables() == 10
+        self.assertEqual(clause_consumer.get_num_clauses(), 0)
+        self.assertEqual(lit_factory.get_num_variables(), 10)
 
     def test_throws_exception_when_output_vec_length_mismatches(self):
         lit_factory = TestLiteralFactory()
@@ -89,8 +89,8 @@ class TestEncodeGateVector(unittest.TestCase):
                                    rhs_input_lits=[lits[2], lits[3]],
                                    output_lits=[lits[4]])
 
-        assert clause_consumer.get_num_clauses() == 0
-        assert lit_factory.get_num_variables() == 10
+        self.assertEqual(clause_consumer.get_num_clauses(), 0)
+        self.assertEqual(lit_factory.get_num_variables(), 10)
 
     def test_generates_None_literals_when_no_outputs_specified(self):
         lit_factory = TestLiteralFactory()
@@ -108,8 +108,8 @@ class TestEncodeGateVector(unittest.TestCase):
                                         rhs_input_lits=[lits[2], lits[3]],
                                         output_lits=None)
 
-        assert result == collected_output_lits
-        assert result == [None, None]
+        self.assertEqual(result, collected_output_lits)
+        self.assertEqual(result, [None, None])
 
     @staticmethod
     def __create_recording_encoder(recording_target: list):
@@ -128,8 +128,8 @@ class TestEncodeGateVector(unittest.TestCase):
                                rhs_input_lits=[2],
                                output_lits=[3])
         expected_rt = [(clause_consumer, lit_factory, (1, 2), 3)]
-        assert recording_target == expected_rt,\
-            "Unexpected encoder calls:\n" + str(recording_target) + "\nvs.\n" + str(expected_rt)
+        self.assertEqual(recording_target, expected_rt,
+                         "Unexpected encoder calls:\n" + str(recording_target) + "\nvs.\n" + str(expected_rt))
 
     def test_calls_basic_encoder_thrice_for_ternary_bit_vectors(self):
         lit_factory = TestLiteralFactory()
@@ -143,8 +143,8 @@ class TestEncodeGateVector(unittest.TestCase):
         expected_rt = [(clause_consumer, lit_factory, (10, 11), 1),
                        (clause_consumer, lit_factory, (20, 21), 2),
                        (clause_consumer, lit_factory, (30, 31), 3)]
-        assert recording_target == expected_rt,\
-            "Unexpected encoder calls:\n" + str(recording_target) + "\nvs.\n" + str(expected_rt)
+        self.assertEqual(recording_target, expected_rt,
+                         "Unexpected encoder calls:\n" + str(recording_target) + "\nvs.\n" + str(expected_rt))
 
 
 def int_to_bitvec(i, result_width):
@@ -157,8 +157,7 @@ def apply_truth_table_setting(positive_lits, setting):
 
 class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
 
-    @staticmethod
-    def __test_for_truth_table(arity, use_carry_in, use_carry_out, truth_table):
+    def __test_for_truth_table(self, arity, use_carry_in, use_carry_out, truth_table):
 
         for table_entry in truth_table:
             input_setting, output_setting = table_entry
@@ -190,18 +189,20 @@ class TestEncodeBVRippleCarryAdderGate(unittest.TestCase):
 
             # Check that the truth table entry satisfies the encoding:
             assumptions_pos = list(itertools.chain(probe_lhs, probe_rhs, probe_out))
-            assert checker.solve(assumptions_pos) is True,\
-                "Encoding failed for truth table entry " + str(table_entry) + "\n(should be satisfiable, but is not)"\
-                + "\nEncoding:\n" + clause_consumer.to_string()\
-                + "\nAssumptions: " + str([x for x in assumptions_pos])
+            self.assertTrue(checker.solve(assumptions_pos),
+                            "Encoding failed for truth table entry " + str(table_entry)
+                            + "\n(should be satisfiable, but is not)"
+                            + "\nEncoding:\n" + clause_consumer.to_string()
+                            + "\nAssumptions: " + str([x for x in assumptions_pos]))
 
             # Check that the gate encodes a function by excluding the output configuration:
             clause_consumer.consume_clause([-x for x in probe_out])
             assumptions_neg = list(itertools.chain(probe_lhs, probe_rhs))
-            assert checker.solve(assumptions_neg) is False,\
-                "Encoding failed for truth table entry " + str(table_entry) + "\n(function property violated)"\
-                + "\nEncoding:\n" + clause_consumer.to_string()\
-                + "\nAssumptions: " + str([x for x in assumptions_neg])
+            self.assertFalse(checker.solve(assumptions_neg),
+                             "Encoding failed for truth table entry " + str(table_entry)
+                             + "\n(function property violated)"
+                             + "\nEncoding:\n" + clause_consumer.to_string()
+                             + "\nAssumptions: " + str([x for x in assumptions_neg]))
 
     @staticmethod
     def __generate_full_truth_table(input_width, carry_in_settings):
@@ -286,8 +287,8 @@ class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
     Base class for truth-table-based bitvector-gate tests.
     """
     def __init__(self):
-        # This mixin may only be used with test cases, since it uses assertRaises:
-        assert isinstance(self, unittest.TestCase)
+        if not isinstance(self, unittest.TestCase):
+            raise RuntimeError("This mixin may only be used with test cases, since it uses assertRaises")
 
     @abc.abstractmethod
     def encode_gate_under_test(self, clause_consumer: cscl_if.ClauseConsumer,
@@ -368,10 +369,12 @@ class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
                 else:
                     print("The gate has no satisfiable assignment for this input configuration")
 
-            assert has_correct_value,\
-                "Encoding failed for truth table entry " + str(table_entry) + "\n(should be satisfiable, but is not)" \
-                + "\nEncoding:\n" + clause_consumer.to_string() \
-                + "\nAssumptions: " + str(assumptions_pos)
+            # noinspection PyUnresolvedReferences
+            self.assertTrue(has_correct_value,
+                            "Encoding failed for truth table entry " + str(table_entry)
+                            + "\n(should be satisfiable, but is not)"
+                            + "\nEncoding:\n" + clause_consumer.to_string()
+                            + "\nAssumptions: " + str(assumptions_pos))
 
             # Check that no other output setting satisfies the constraint
             clause_consumer.consume_clause([-x for x in probe_output])
@@ -380,10 +383,13 @@ class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
             if not is_functional_rel:
                 print("Unexpectedly found model:")
                 checker.print_model()
-            assert is_functional_rel,\
-                "Encoding failed for truth table entry " + str(table_entry) + "\n(function property violated)"\
-                + "\nEncoding:\n" + clause_consumer.to_string()\
-                + "\nAssumptions: " + str(assumptions_neg)
+
+            # noinspection PyUnresolvedReferences
+            self.assertTrue(is_functional_rel,
+                            "Encoding failed for truth table entry " + str(table_entry)
+                            + "\n(function property violated)"
+                            + "\nEncoding:\n" + clause_consumer.to_string()
+                            + "\nAssumptions: " + str(assumptions_neg))
 
     def test_conforms_to_truth_table_for_bv_width_1(self):
         self.__test_for_truth_table(gate_arity=1)
@@ -437,7 +443,8 @@ class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
                                         rhs_input_lits=rhs_input_lits,
                                         output_lits=output_lits)
 
-        assert result == output_lits
+        # noinspection PyUnresolvedReferences
+        self.assertEqual(result, output_lits)
 
     def test_creates_output_literals_if_none_provided(self):
         lit_factory = TestLiteralFactory()
@@ -451,11 +458,15 @@ class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
         result = encoder_under_test(clause_consumer, lit_factory, lhs_input_lits, rhs_input_lits)
 
         if self.is_encoder_under_test_bv_predicate():
-            assert result not in all_inputs
-            assert -result not in all_inputs
+            # noinspection PyUnresolvedReferences
+            self.assertTrue(result not in all_inputs)
+            # noinspection PyUnresolvedReferences
+            self.assertTrue(-result not in all_inputs)
         else:
-            assert not any(x in all_inputs for x in result)
-            assert not any(-x in all_inputs for x in result)
+            # noinspection PyUnresolvedReferences
+            self.assertFalse(any(x in all_inputs for x in result))
+            # noinspection PyUnresolvedReferences
+            self.assertFalse(any(-x in all_inputs for x in result))
 
 
 class AbstractTruthTableBasedBitvectorToBitvectorGateTest(AbstractTruthTableBasedBitvectorGateTest):
@@ -662,7 +673,7 @@ class TestEncodeBVSignedLessThanOrEqualCompGate(unittest.TestCase,
 
     def generate_truth_table(self, gate_arity: int):
         def __sign_extend(x: int, from_width: int):
-            assert from_width > 0
+            self.assertTrue(from_width > 0)
             sign = 1 if (x & (1 << (from_width-1))) != 0 else 0
             sign_extension_mask = ~((1 << from_width) - 1)
             if sign == 0:
@@ -844,7 +855,7 @@ class TestEncodeStaggeredOrGate(unittest.TestCase):
         clause_consumer = CollectingClauseConsumer()
         lit_factory = TestLiteralFactory()
         result = bvg.encode_staggered_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory, input_lits=[])
-        assert result == [], "Unexpected result " + str(result)
+        self.assertEqual(result, [], "Unexpected result " + str(result))
 
     def test_raises_exception_when_input_and_output_sizes_mismatch(self):
         clause_consumer = CollectingClauseConsumer()
@@ -862,9 +873,9 @@ class TestEncodeStaggeredOrGate(unittest.TestCase):
                                      input_lits=[input_lit],
                                      output_lits=[output_lit])
 
-        assert solver.solve([]) is True, "Without further constraints, the gate encoding must be satisfiable"
-        assert solver.solve([input_lit, -output_lit]) is False, "Unexpected: input not equivalent to output"
-        assert solver.solve([-input_lit, output_lit]) is False, "Unexpected: input not equivalent to output"
+        self.assertTrue(solver.solve([]), "Without further constraints, the gate encoding must be satisfiable")
+        self.assertFalse(solver.solve([input_lit, -output_lit]), "Unexpected: input not equivalent to output")
+        self.assertFalse(solver.solve([-input_lit, output_lit]), "Unexpected: input not equivalent to output")
 
     def test_is_staggered_or_gate_for_ternary_input(self):
         for test_index in range(0, 8):
@@ -877,7 +888,7 @@ class TestEncodeStaggeredOrGate(unittest.TestCase):
                                for i in range(0, 3)]
 
             maps_input = solver.solve(test_input + expected_output)
-            assert maps_input, "The gate under test violates its input/output spec"
+            self.assertTrue(maps_input, "The gate under test violates its input/output spec")
 
             solver.consume_clause([-o for o in expected_output])
-            assert not solver.solve(test_input), "Unexpected: encoding is not a gate encoding"
+            self.assertFalse(solver.solve(test_input), "Unexpected: encoding is not a gate encoding")
