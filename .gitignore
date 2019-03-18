@@ -4,3 +4,5 @@ venv
 dist
 MANIFEST
 PyCSCL.egg-info
+.coverage
+htmlcov
