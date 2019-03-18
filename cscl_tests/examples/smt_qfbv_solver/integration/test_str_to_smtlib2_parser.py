@@ -9,23 +9,22 @@ import cscl_examples.smt_qfbv_solver.ast as ast
 class TestSExprParserAndSMTLib2ParserIntegration(unittest.TestCase):
     def test_parse_empty_problem(self):
         result = parse_smtlib2_problem(parse_sexp(lex_sexp("")))
-        assert len(result) == 0
+        self.assertEqual(len(result), 0)
 
     def test_parse_single_expr(self):
         result = parse_smtlib2_problem(parse_sexp(lex_sexp("(set-logic QF_BV)")))
-        assert len(result) == 1
-        assert result[0].tree_to_string() == "SetLogicCommandASTNode Logic: QF_BV"
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].tree_to_string(), "SetLogicCommandASTNode Logic: QF_BV")
 
-    @staticmethod
-    def __test_parse(smtlib_problem: str, expected_ast: str):
+    def __test_parse(self, smtlib_problem: str, expected_ast: str):
         result = parse_smtlib2_problem(parse_sexp(lex_sexp(smtlib_problem)))
         result_ast = ""
         for x in result:
-            assert isinstance(x, ast.ASTNode)
+            self.assertTrue(isinstance(x, ast.ASTNode))
             result_ast += "\n" + x.tree_to_string(12)
 
-        assert expected_ast == result_ast, "Problem instance:\n" + smtlib_problem\
-            + "\nExpected AST:\n" + expected_ast + "\nActual AST:\n" + result_ast
+        self.assertEqual(expected_ast, result_ast, "Problem instance:\n" + smtlib_problem
+                         + "\nExpected AST:\n" + expected_ast + "\nActual AST:\n" + result_ast)
 
     def test_parse_assert_simple(self):
         problem = """(declare-const x (_ BitVec 20))

@@ -4,14 +4,13 @@ from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
 
 
 class TestFactorization(unittest.TestCase):
-    @staticmethod
-    def __check_result(factors, expected_factors):
-        assert factors is not None, "Unexpectedly found no factors"
+    def __check_result(self, factors, expected_factors):
+        self.assertTrue(factors is not None, "Unexpectedly found no factors")
 
         lfactors = list(factors)
         lexpected = list(expected_factors)
-        assert lfactors == lexpected or lfactors == [lexpected[1], lexpected[0]],\
-            "Unexpected factors: " + str(factors)
+        self.assertTrue(lfactors == lexpected or lfactors == [lexpected[1], lexpected[0]],
+                        "Unexpected factors: " + str(factors))
 
     def test_refuses_to_factorize_negatives(self):
         solver = TrivialSATSolver()

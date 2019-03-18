@@ -9,13 +9,12 @@ class TestFunctionDefinitionInliner(unittest.TestCase):
     def test_does_not_modify_empty_ast(self):
         under_test = ast_trans.FunctionDefinitionInliner()
         result = under_test.transform([])
-        assert result == []
+        self.assertEqual(result, [])
 
-    @staticmethod
-    def __expect_ast(expected_ast_as_str, indent, actual_ast):
+    def __expect_ast(self, expected_ast_as_str, indent, actual_ast):
         actual_ast_as_str = "\n" + "\n".join(x.tree_to_string(indent) for x in actual_ast)
-        assert expected_ast_as_str == actual_ast_as_str, "Mismatching ASTS\nExpected:" + expected_ast_as_str\
-            + "\nActual:" + actual_ast_as_str
+        self.assertEqual(expected_ast_as_str, actual_ast_as_str,
+                         "Mismatching ASTS\nExpected:" + expected_ast_as_str + "\nActual:" + actual_ast_as_str)
 
     def test_does_not_modify_ast_with_no_definitions(self):
         under_test = ast_trans.FunctionDefinitionInliner()

@@ -19,14 +19,14 @@ class TestParseSmtlib2Literal(unittest.TestCase):
     def test_parses_int0(self):
         sort_ctx = sorts.SortContext()
         result = smt.parse_smtlib2_literal("0", sort_ctx)
-        assert result.get_literal() is 0, "Unexpected result " + str(result)
-        assert isinstance(result.get_sort(), sorts.IntegerSort)
+        self.assertEqual(result.get_literal(), 0, "Unexpected result " + str(result))
+        self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
 
     def test_parses_int12(self):
         sort_ctx = sorts.SortContext()
         result = smt.parse_smtlib2_literal("12", sort_ctx)
-        assert result.get_literal() is 12, "Unexpected result " + str(result)
-        assert isinstance(result.get_sort(), sorts.IntegerSort)
+        self.assertEqual(result.get_literal(), 12, "Unexpected result " + str(result))
+        self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
 
     def test_fails_for_int_with_extra_leading_0(self):
         sort_ctx = sorts.SortContext()
@@ -36,45 +36,45 @@ class TestParseSmtlib2Literal(unittest.TestCase):
     def test_parses_bv0(self):
         sort_ctx = sorts.SortContext()
         result = smt.parse_smtlib2_literal("#b0", sort_ctx)
-        assert result.get_literal() is 0, "Unexpected result " + str(result)
+        self.assertEqual(result.get_literal(), 0, "Unexpected result " + str(result))
         sort = result.get_sort()
-        assert isinstance(sort, sorts.BitvectorSort)
-        assert sort.get_len() == 1
+        self.assertTrue(isinstance(sort, sorts.BitvectorSort))
+        self.assertTrue(sort.get_len() == 1)
 
     def test_parses_bv2(self):
         sort_ctx = sorts.SortContext()
         result = smt.parse_smtlib2_literal("#b10", sort_ctx)
-        assert result.get_literal() is 2, "Unexpected result " + str(result)
+        self.assertEqual(result.get_literal(), 2, "Unexpected result " + str(result))
         sort = result.get_sort()
-        assert isinstance(sort, sorts.BitvectorSort)
-        assert sort.get_len() == 2
+        self.assertTrue(isinstance(sort, sorts.BitvectorSort))
+        self.assertEqual(sort.get_len(), 2)
 
     def test_parses_bv21_with_leading_zeroes(self):
         sort_ctx = sorts.SortContext()
         result = smt.parse_smtlib2_literal("#b10101", sort_ctx)
-        assert result.get_literal() is 21, "Unexpected result " + str(result)
+        self.assertEqual(result.get_literal(), 21, "Unexpected result " + str(result))
         sort = result.get_sort()
-        assert isinstance(sort, sorts.BitvectorSort)
-        assert sort.get_len() == 5
+        self.assertTrue(isinstance(sort, sorts.BitvectorSort))
+        self.assertEqual(sort.get_len(), 5)
 
 
 class TestParseSmtlib2Sort(unittest.TestCase):
     def test_parses_int_sort(self):
         sort_ctx = sorts.SortContext()
         result = smt.parse_smtlib2_sort("Int", sort_ctx)
-        assert isinstance(result, sorts.IntegerSort)
+        self.assertTrue(isinstance(result, sorts.IntegerSort))
 
     def test_parses_bv1_sort(self):
         sort_ctx = sorts.SortContext()
         result = smt.parse_smtlib2_sort(["_", "BitVec", "1"], sort_ctx)
-        assert isinstance(result, sorts.BitvectorSort)
-        assert result.get_len() == 1
+        self.assertTrue(isinstance(result, sorts.BitvectorSort))
+        self.assertEqual(result.get_len(), 1)
 
     def test_parses_bv13_sort(self):
         sort_ctx = sorts.SortContext()
         result = smt.parse_smtlib2_sort(["_", "BitVec", "13"], sort_ctx)
-        assert isinstance(result, sorts.BitvectorSort)
-        assert result.get_len() == 13
+        self.assertTrue(isinstance(result, sorts.BitvectorSort))
+        self.assertEqual(result.get_len(), 13)
 
     def test_refuses_malformed_bv_sort(self):
         sort_ctx = sorts.SortContext()
@@ -121,10 +121,10 @@ class TestParseSmtlib2Symbol(unittest.TestCase):
                 smt.parse_smtlib2_symbol(x)
 
     def test_alnum_string_is_symbol(self):
-        assert smt.parse_smtlib2_symbol("abc01d") == "abc01d"
+        self.assertEqual(smt.parse_smtlib2_symbol("abc01d"), "abc01d")
 
     def test_string_with_nonalnum_chards_is_symbol(self):
-        assert smt.parse_smtlib2_symbol("a/b@_c%^") == "a/b@_c%^"
+        self.assertEqual(smt.parse_smtlib2_symbol("a/b@_c%^"), "a/b@_c%^")
 
 
 def create_function_signature_fn(domain_sorts, range_sort):
@@ -146,17 +146,17 @@ class TestParseSmtlib2Term(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         fun_scope = smt.SyntacticFunctionScope(None)
         result = smt.parse_smtlib2_term("100", sort_ctx, fun_scope)
-        assert isinstance(result, ast.LiteralASTNode)
-        assert isinstance(result.get_sort(), sorts.IntegerSort)
-        assert result.get_literal() == 100
+        self.assertTrue(isinstance(result, ast.LiteralASTNode))
+        self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
+        self.assertEqual(result.get_literal(), 100)
 
     def test_bv_literal_is_term(self):
         sort_ctx = sorts.SortContext()
         fun_scope = smt.SyntacticFunctionScope(None)
         result = smt.parse_smtlib2_term("#b100", sort_ctx, fun_scope)
-        assert isinstance(result, ast.LiteralASTNode)
-        assert isinstance(result.get_sort(), sorts.BitvectorSort)
-        assert result.get_literal() == 4
+        self.assertTrue(isinstance(result, ast.LiteralASTNode))
+        self.assertTrue(isinstance(result.get_sort(), sorts.BitvectorSort))
+        self.assertEqual(result.get_literal(), 4)
 
     def test_constant_is_term(self):
         sort_ctx = sorts.SortContext()
@@ -165,10 +165,10 @@ class TestParseSmtlib2Term(unittest.TestCase):
         fun_scope.add_declaration(ast.FunctionDeclaration("foonction", constant_signature))
 
         result = smt.parse_smtlib2_term("foonction", sort_ctx, fun_scope)
-        assert isinstance(result, ast.FunctionApplicationASTNode)
-        assert isinstance(result.get_sort(), sorts.IntegerSort)
-        assert result.get_declaration().get_name() == "foonction"
-        assert len(result.get_child_nodes()) == 0
+        self.assertTrue(isinstance(result, ast.FunctionApplicationASTNode))
+        self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
+        self.assertEqual(result.get_declaration().get_name(), "foonction")
+        self.assertEqual(len(result.get_child_nodes()), 0)
 
     def test_constant_in_parens_is_term(self):
         sort_ctx = sorts.SortContext()
@@ -177,10 +177,10 @@ class TestParseSmtlib2Term(unittest.TestCase):
         fun_scope.add_declaration(ast.FunctionDeclaration("foonction", constant_signature))
 
         result = smt.parse_smtlib2_term(["foonction"], sort_ctx, fun_scope)
-        assert isinstance(result, ast.FunctionApplicationASTNode)
-        assert isinstance(result.get_sort(), sorts.IntegerSort)
-        assert result.get_declaration().get_name() == "foonction"
-        assert len(result.get_child_nodes()) == 0
+        self.assertTrue(isinstance(result, ast.FunctionApplicationASTNode))
+        self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
+        self.assertEqual(result.get_declaration().get_name(), "foonction")
+        self.assertEqual(len(result.get_child_nodes()), 0)
 
     def test_function_expression_is_term(self):
         sort_ctx = sorts.SortContext()
@@ -192,20 +192,20 @@ class TestParseSmtlib2Term(unittest.TestCase):
                                                           smt.FunctionSignature(fun_signature_fn, 2, True)))
 
         result = smt.parse_smtlib2_term(["foonction", "#b100", "30"], sort_ctx, fun_scope)
-        assert isinstance(result, ast.FunctionApplicationASTNode)
-        assert isinstance(result.get_sort(), sorts.IntegerSort)
-        assert result.get_declaration().get_name() == "foonction"
-        assert len(result.get_child_nodes()) == 2
+        self.assertTrue(isinstance(result, ast.FunctionApplicationASTNode))
+        self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
+        self.assertEqual(result.get_declaration().get_name(), "foonction")
+        self.assertEqual(len(result.get_child_nodes()), 2)
 
         lhs_node = result.get_child_nodes()[0]
-        assert isinstance(lhs_node, ast.LiteralASTNode)
-        assert lhs_node.get_sort() == sort_ctx.get_bv_sort(3)
-        assert lhs_node.get_literal() == 4
+        self.assertTrue(isinstance(lhs_node, ast.LiteralASTNode))
+        self.assertEqual(lhs_node.get_sort(), sort_ctx.get_bv_sort(3))
+        self.assertEqual(lhs_node.get_literal(), 4)
 
         rhs_node = result.get_child_nodes()[1]
-        assert isinstance(rhs_node, ast.LiteralASTNode)
-        assert rhs_node.get_sort() == sort_ctx.get_int_sort()
-        assert rhs_node.get_literal() == 30
+        self.assertTrue(isinstance(rhs_node, ast.LiteralASTNode))
+        self.assertEqual(rhs_node.get_sort(), sort_ctx.get_int_sort())
+        self.assertEqual(rhs_node.get_literal(), 30)
 
     def test_parse_nested_term(self):
         sort_ctx = sorts.SortContext()
@@ -229,7 +229,7 @@ class TestParseSmtlib2Term(unittest.TestCase):
 
         result = smt.parse_smtlib2_term(["foonction", "100", ["threebitbv", "5"], ["integerthingy", "1024"]],
                                         sort_ctx, fun_scope)
-        assert isinstance(result, ast.FunctionApplicationASTNode)
+        self.assertTrue(isinstance(result, ast.FunctionApplicationASTNode))
         expected_tree = """FunctionApplicationASTNode Function: foonction Sort: Int
   LiteralASTNode Literal: 100 Sort: Int
   FunctionApplicationASTNode Function: threebitbv Sort: (_ BitVec 3)
@@ -237,7 +237,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
   FunctionApplicationASTNode Function: integerthingy Sort: Int
     LiteralASTNode Literal: 1024 Sort: Int"""
         actual_tree = result.tree_to_string()
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(actual_tree, expected_tree,
+                         "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree)
 
     def test_fails_for_function_application_with_bad_arity(self):
         sort_ctx = sorts.SortContext()
@@ -301,7 +302,9 @@ class TestParseSmtlib2Term(unittest.TestCase):
               FunctionApplicationASTNode Function: foonction Sort: Int
                 LiteralASTNode Literal: 7 Sort: (_ BitVec 3)"""
         actual_tree = "\n" + result.tree_to_string(12)
-        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(expected_tree,
+                         actual_tree,
+                         "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree)
 
     def test_parse_let_term_with_single_def(self):
         sort_ctx = sorts.SortContext()
@@ -321,7 +324,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
               FunctionApplicationASTNode Function: foonction Sort: Int
                 FunctionApplicationASTNode Function: x Sort: (_ BitVec 3)"""
         actual_tree = "\n" + result.tree_to_string(12)
-        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(expected_tree, actual_tree,
+                         "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree)
 
     def test_parse_let_term_with_two_defs(self):
         sort_ctx = sorts.SortContext()
@@ -346,7 +350,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
                 FunctionApplicationASTNode Function: y Sort: (_ BitVec 3)
                 FunctionApplicationASTNode Function: x Sort: (_ BitVec 2)"""
         actual_tree = "\n" + result.tree_to_string(12)
-        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(expected_tree,
+                         actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree)
 
     def test_parse_let_term_with_shadowing(self):
         sort_ctx = sorts.SortContext()
@@ -366,7 +371,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
                 FunctionApplicationASTNode Function: y Sort: (_ BitVec 2)"""
 
         actual_tree = "\n" + result.tree_to_string(12)
-        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(expected_tree, actual_tree,
+                         "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree)
 
     def test_fails_for_malformed_let_statement(self):
         sort_ctx = sorts.SortContext()
@@ -408,7 +414,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
           FunctionApplicationASTNode Function: 0!foonction Sort: (_ BitVec 16) Parameters: (11, 2)
             LiteralASTNode Literal: 5 Sort: (_ BitVec 3)"""
         actual_tree = "\n" + result.tree_to_string(10)
-        assert expected_tree == actual_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(expected_tree, actual_tree,
+                         "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree)
 
     def test_fails_for_malformed_parametrized_function_expression(self):
         sort_ctx = sorts.SortContext()
@@ -441,9 +448,9 @@ class TestParseSmtlib2Term(unittest.TestCase):
         sort_ctx = sorts.SortContext()
         fun_scope = smt.SyntacticFunctionScope(None)
         result = smt.parse_smtlib2_term(["_", "bv500", "12"], sort_ctx, fun_scope)
-        assert isinstance(result, ast.LiteralASTNode)
-        assert result.get_literal() == 500
-        assert result.get_sort() is sort_ctx.get_bv_sort(12)
+        self.assertTrue(isinstance(result, ast.LiteralASTNode))
+        self.assertEqual(result.get_literal(), 500)
+        self.assertTrue(result.get_sort() is sort_ctx.get_bv_sort(12))
 
     def test_parse_underscore_bv_literal_fails_for_malformed_literal(self):
         sort_ctx = sorts.SortContext()
@@ -473,15 +480,15 @@ class TestParseSmtlib2Term(unittest.TestCase):
 class TestParseSmtlib2Problem(unittest.TestCase):
     def test_empty_problem(self):
         result = smt.parse_smtlib2_problem([])
-        assert result == []
+        self.assertEqual(result, [])
 
     def test_set_logic_cmd_qfbv(self):
         result = smt.parse_smtlib2_problem([["set-logic", "QF_BV"]])
-        assert type(result) == list
-        assert len(result) == 1
+        self.assertEqual(type(result), list)
+        self.assertEqual(len(result), 1)
         expected_tree = "SetLogicCommandASTNode Logic: QF_BV"
         actual_tree = result[0].tree_to_string()
-        assert actual_tree == expected_tree,  "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(actual_tree, expected_tree)
 
     def test_set_logic_cmd_fails_for_bad_arity(self):
         with self.assertRaises(ValueError):
@@ -491,54 +498,53 @@ class TestParseSmtlib2Problem(unittest.TestCase):
 
     def test_declare_fun_cmd_without_args_and_int_range(self):
         result = smt.parse_smtlib2_problem([["declare-fun", "foonction", [], "Int"]])
-        assert type(result) == list
-        assert len(result) == 1
+        self.assertEqual(type(result), list)
+        self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: [] RangeSort: Int"
         actual_tree = result[0].tree_to_string()
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(actual_tree, expected_tree)
 
     def test_declare_fun_cmd_without_args_and_bv_range(self):
         result = smt.parse_smtlib2_problem([["declare-fun", "foonction", [], ["_", "BitVec", "32"]]])
-        assert type(result) == list
-        assert len(result) == 1
+        self.assertEqual(type(result), list)
+        self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: [] RangeSort: (_ BitVec 32)"
         actual_tree = result[0].tree_to_string()
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(actual_tree, expected_tree)
 
     def test_declare_fun_cmd_with_args_and_bv_range(self):
         result = smt.parse_smtlib2_problem([["declare-fun", "foonction", ["Int", ["_", "BitVec", "32"]],
                                              ["_", "BitVec", "32"]]])
-        assert type(result) == list
-        assert len(result) == 1
+        self.assertEqual(type(result), list)
+        self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: ['Int', '(_ BitVec 32)']" + \
                         " RangeSort: (_ BitVec 32)"
         actual_tree = result[0].tree_to_string()
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(actual_tree, expected_tree)
 
     def test_declare_const_cmd_with_int_sort(self):
         result = smt.parse_smtlib2_problem([["declare-const", "fooconst", "Int"]])
-        assert type(result) == list
-        assert len(result) == 1
+        self.assertEqual(type(result), list)
+        self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: fooconst DomainSorts: [] RangeSort: Int"
         actual_tree = result[0].tree_to_string()
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(actual_tree, expected_tree)
 
     def test_declare_const_cmd_with_bv_sort(self):
         result = smt.parse_smtlib2_problem([["declare-const", "fooconst", ["_", "BitVec", "32"]]])
-        assert type(result) == list
-        assert len(result) == 1
+        self.assertEqual(type(result), list)
+        self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: fooconst DomainSorts: [] RangeSort: (_ BitVec 32)"
         actual_tree = result[0].tree_to_string()
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(actual_tree, expected_tree)
 
-    @staticmethod
-    def assert_printed_ast_equal(ast_nodes: List[ast.ASTNode], expected_tree: str, indent: int):
+    def assert_printed_ast_equal(self, ast_nodes: List[ast.ASTNode], expected_tree: str, indent: int):
         actual_tree = "\n"
         for x in ast_nodes:
-            assert isinstance(x, ast.ASTNode)
+            self.assertTrue(isinstance(x, ast.ASTNode))
             actual_tree += x.tree_to_string(indent) + "\n"
         actual_tree = actual_tree.rstrip()
-        assert actual_tree == expected_tree, "Unexpected AST:\n" + actual_tree + "\nExpected:\n" + expected_tree
+        self.assertEqual(actual_tree, expected_tree)
 
     def test_assert(self):
         result = smt.parse_smtlib2_problem([["declare-const", "x", "Bool"],
@@ -664,7 +670,7 @@ class TestParseSmtlib2Problem(unittest.TestCase):
 
     def test_ignores_set_info_commands(self):
         result = smt.parse_smtlib2_problem([["set-info", ":smt-lib-version", "2.0"]])
-        assert result == []
+        self.assertEqual(result, [])
 
     def test_fn_can_be_redeclared_after_pop(self):
         result = smt.parse_smtlib2_problem([["set-logic", "QF_BV"],

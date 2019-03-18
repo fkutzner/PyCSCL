@@ -15,7 +15,7 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         under_test.add_declaration(decl)
 
         lookup_result = under_test.get_declaration("foo")
-        assert lookup_result is decl
+        self.assertTrue(lookup_result is decl)
 
     def test_queries_parent_scope(self):
         sort_ctx = sorts.SortContext()
@@ -28,7 +28,7 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         parent.add_declaration(decl)
 
         lookup_result = under_test.get_declaration("foo")
-        assert lookup_result is decl
+        self.assertTrue(lookup_result is decl)
 
     def test_set_parent_scope(self):
         sort_ctx = sorts.SortContext()
@@ -42,12 +42,12 @@ class TestSyntacticFunctionScope(unittest.TestCase):
         parent.add_declaration(decl)
 
         lookup_result = under_test.get_declaration("foo")
-        assert lookup_result is decl
+        self.assertTrue(lookup_result is decl)
 
     def test_get_parent_scope(self):
         parent = synscope.SyntacticFunctionScope(None)
         child = synscope.SyntacticFunctionScope(parent)
-        assert child.get_parent() is parent
+        self.assertTrue(child.get_parent() is parent)
 
     def test_refuses_to_add_when_unshadowable(self):
         sort_ctx = sorts.SortContext()

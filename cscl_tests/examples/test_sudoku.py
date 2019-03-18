@@ -8,7 +8,7 @@ from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
 class TestSudokuBoard(unittest.TestCase):
     def test_create_from_empty_string_yields_no_board(self):
         under_test = SudokuBoard.create_from_string("")
-        assert under_test is None
+        self.assertEqual(under_test, None)
 
     def test_create_from_string_with_illegal_symbols_yields_no_board(self):
         under_test = SudokuBoard.create_from_string("""
@@ -20,7 +20,7 @@ class TestSudokuBoard(unittest.TestCase):
                                                 |3x|xx|
                                                 +--+--+
                                                 """)
-        assert under_test is None
+        self.assertEqual(under_test, None)
 
     def test_create_from_string_with_line_missing_yields_no_board(self):
         under_test = SudokuBoard.create_from_string("""
@@ -31,7 +31,7 @@ class TestSudokuBoard(unittest.TestCase):
                                                 |xx|x3|
                                                 +--+--+
                                                 """)
-        assert under_test is None
+        self.assertEqual(under_test, None)
 
     def test_create_from_string_with_column_missing_yields_no_board(self):
         under_test = SudokuBoard.create_from_string("""
@@ -43,7 +43,7 @@ class TestSudokuBoard(unittest.TestCase):
                                                 |3x|x|
                                                 +--+-+
                                                 """)
-        assert under_test is None
+        self.assertEqual(under_test, None)
 
     def test_create_from_string_with_cell_0_yields_no_board(self):
         under_test = SudokuBoard.create_from_string("""
@@ -55,7 +55,7 @@ class TestSudokuBoard(unittest.TestCase):
                                                 |3x|xx|
                                                 +--+--+
                                                 """)
-        assert under_test is None
+        self.assertEqual(under_test, None)
 
     def test_create_from_string_with_too_large_number_yields_no_board(self):
         under_test = SudokuBoard.create_from_string("""
@@ -67,7 +67,7 @@ class TestSudokuBoard(unittest.TestCase):
                                                 |3x|xx|
                                                 +--+--+
                                                 """)
-        assert under_test is None
+        self.assertEqual(under_test, None)
 
     def test_create_from_string_with_missing_box_yields_no_board(self):
         under_test = SudokuBoard.create_from_string("""
@@ -79,7 +79,7 @@ class TestSudokuBoard(unittest.TestCase):
                                                 |3x|
                                                 +--+
                                                 """)
-        assert under_test is None
+        self.assertEqual(under_test, None)
 
     board_2x2 = """1x|2x
 x4|xx
@@ -89,13 +89,13 @@ xx|x3
 
     def test_create_2x2_board_from_string(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
-        assert under_test is not None
+        self.assertTrue(under_test is not None)
         expected = [[1,    None, 2,    None],
                     [None, 4,    None, None],
                     [None, None, None, 3],
                     [3,    None, 1,    None]]
         for row, col in itertools.product(range(0, 4), range(0, 4)):
-            assert under_test.get(row, col) == expected[row][col], "Error at coordinates " + str((row, col))
+            self.assertEqual(under_test.get(row, col), expected[row][col], "Error at coordinates " + str((row, col)))
 
     board_3x3 = """x1x|xx7|xxx
 5xx|xxx|xxx
@@ -111,7 +111,7 @@ xxx|xxx|2x3"""
 
     def test_create_3x3_board_from_string(self):
         under_test = SudokuBoard.create_from_string(self.board_3x3)
-        assert under_test is not None
+        self.assertTrue(under_test is not None)
         expected = {(0, 1): 1,
                     (0, 5): 7,
                     (1, 0): 5,
@@ -121,22 +121,23 @@ xxx|xxx|2x3"""
                     (8, 6): 2,
                     (8, 8): 3}
         for row, col in itertools.product(range(0, 9), range(0, 9)):
-            assert under_test.get(row, col) == expected.get((row, col)), "Error at coordinates " + str((row, col))
+            self.assertEqual(under_test.get(row, col), expected.get((row, col)),
+                             "Error at coordinates " + str((row, col)))
 
     def test_get_size_2x2(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         result = under_test.get_size()
-        assert result == 4, "Invalid size " + str(result)
+        self.assertEqual(result, 4, "Invalid size " + str(result))
         
     def test_set_valid_digit(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         under_test.set(0, 0, 3)
-        assert under_test.get(0, 0) == 3
+        self.assertEqual(under_test.get(0, 0), 3)
 
     def test_set_none(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         under_test.set(0, 0, None)
-        assert under_test.get(0, 0) is None
+        self.assertTrue(under_test.get(0, 0) is None)
 
     def test_set_invalid_digit(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
@@ -160,19 +161,21 @@ xxx|xxx|2x3"""
     def test_clone(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         clone = under_test.clone()
-        assert under_test.get_size() == clone.get_size()
+        self.assertEqual(under_test.get_size(), clone.get_size())
         for i, j in itertools.product(range(0, 4), range(0, 4)):
-            assert under_test.get(i, j) == clone.get(i, j), "Error at coordinates " + str((i, j))
+            self.assertEqual(under_test.get(i, j), clone.get(i, j), "Error at coordinates " + str((i, j)))
 
     def test_to_string_3x3(self):
         under_test = SudokuBoard.create_from_string(self.board_3x3)
         result = under_test.to_string()
-        assert result == self.board_3x3, "Invalid string representation:\n" + result + "\nExpected:\n" + self.board_3x3
+        self.assertEqual(result, self.board_3x3,
+                         "Invalid string representation:\n" + result + "\nExpected:\n" + self.board_3x3)
 
     def test_to_string_2x2(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         result = under_test.to_string()
-        assert result == self.board_2x2, "Invalid string representation:\n" + result + "\nExpected:\n" + self.board_2x2
+        self.assertEqual(result, self.board_2x2,
+                         "Invalid string representation:\n" + result + "\nExpected:\n" + self.board_2x2)
 
 
 # TODO: test SudokuSolver and SudokuEncoder independently
@@ -241,15 +244,14 @@ class TestSudokuSolver(unittest.TestCase):
     def __bad_solution_err_msg(solution: SudokuBoard, problem_instance: SudokuBoard):
         return "Bad solution:\n" + solution.to_string() + "\nfor problem instance:\n" + problem_instance.to_string()
 
-    @staticmethod
-    def __solve_and_check(problem_instance_txt: str):
+    def __solve_and_check(self, problem_instance_txt: str):
         problem_instance = SudokuBoard.create_from_string(problem_instance_txt)
         sat_solver = TrivialSATSolver()
         under_test = SudokuSolver(problem_instance.get_size(), sat_solver)
         solution = under_test.solve(problem_instance)
-        assert solution is not None
-        assert TestSudokuSolver.__is_valid_solution(solution, problem_instance),\
-            TestSudokuSolver.__bad_solution_err_msg(solution, problem_instance)
+        self.assertTrue(solution is not None)
+        self.assertTrue(TestSudokuSolver.__is_valid_solution(solution, problem_instance),
+                        TestSudokuSolver.__bad_solution_err_msg(solution, problem_instance))
 
     # Unfortunately, the simple testing SAT solver is not powerful enough for solving 3x3
     # instances in a reasonable amount of time, and a full-fledged  IPASIR solver
@@ -262,7 +264,7 @@ class TestSudokuSolver(unittest.TestCase):
                                    --+--
                                    4x|1x
                                    xx|xx"""
-        TestSudokuSolver.__solve_and_check(board_2x2_constrained)
+        self.__solve_and_check(board_2x2_constrained)
 
     def test_2x2_unconstrained(self):
         board_2x2_empty = """xx|xx
@@ -270,40 +272,39 @@ class TestSudokuSolver(unittest.TestCase):
                              --+--
                              xx|xx
                              xx|xx"""
-        TestSudokuSolver.__solve_and_check(board_2x2_empty)
+        self.__solve_and_check(board_2x2_empty)
 
-    @staticmethod
-    def __check_unsolvability(problem_instance_txt: str):
+    def __check_unsolvability(self, problem_instance_txt: str):
         problem_instance = SudokuBoard.create_from_string(problem_instance_txt)
         sat_solver = TrivialSATSolver()
         under_test = SudokuSolver(problem_instance.get_size(), sat_solver)
         solution = under_test.solve(problem_instance)
-        assert solution is None, "Board has a solution, but should not:\n" + problem_instance_txt
+        self.assertTrue(solution is None, "Board has a solution, but should not:\n" + problem_instance_txt)
 
     def test_2x2_has_box_constraint(self):
-        TestSudokuSolver.__check_unsolvability("""1x|xx
-                                                  x1|xx
-                                                  --+--
-                                                  xx|xx
-                                                  xx|xx""")
+        self.__check_unsolvability("""1x|xx
+                                      x1|xx
+                                      --+--
+                                      xx|xx
+                                      xx|xx""")
 
     def test_2x2_has_row_constraint(self):
-        TestSudokuSolver.__check_unsolvability("""1x|x1
-                                                  xx|xx
-                                                  --+--
-                                                  xx|xx
-                                                  xx|xx""")
+        self.__check_unsolvability("""1x|x1
+                                      xx|xx
+                                      --+--
+                                      xx|xx
+                                      xx|xx""")
 
     def test_2x2_has_col_constraint(self):
-        TestSudokuSolver.__check_unsolvability("""1x|xx
-                                                  xx|xx
-                                                  --+--
-                                                  1x|xx
-                                                  xx|xx""")
+        self.__check_unsolvability("""1x|xx
+                                      xx|xx
+                                      --+--
+                                      1x|xx
+                                      xx|xx""")
 
     def test_2x2_overconstrained(self):
-        TestSudokuSolver.__check_unsolvability("""1x|xx
-                                                  xx|4x
-                                                  --+--
-                                                  x3|x1
-                                                  xx|2x""")
+        self.__check_unsolvability("""1x|xx
+                                      xx|4x
+                                      --+--
+                                      x3|x1
+                                      xx|2x""")
