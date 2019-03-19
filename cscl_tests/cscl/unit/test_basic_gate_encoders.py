@@ -337,7 +337,7 @@ class TestEncodeCNFConstraintAsGate(TestCase):
         self.assertEqual(result, variables[2])
 
     def test_encode_cnf_constraint_as_gate_encodes_empty_constraint_as_true(self):
-        checker, variables = create_trivial_sat_solver_with_n_vars(10)
+        checker, _ = create_trivial_sat_solver_with_n_vars(10)
         logging_checker = LoggingClauseConsumerDecorator(checker)
         output = encode_cnf_constraint_as_gate(logging_checker, checker, [])
         self.assertFalse(checker.solve([-output]),

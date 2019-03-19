@@ -62,8 +62,8 @@ class FunctionDefinitionInliner(ASTTransformer):
 
         # Transform child nodes.
         children = result.get_child_nodes()
-        for i in range(0, len(children)):
-            result.set_child_node(i, self.__transform_term(children[i]))
+        for i, child_node in enumerate(children):
+            result.set_child_node(i, self.__transform_term(child_node))
 
         return result
 

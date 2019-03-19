@@ -452,7 +452,7 @@ def parse_smtlib2_problem(parsed_sexp):
             if push_level - amnt < 0:
                 raise ValueError("Invalid pop command: no corresponding push command")
 
-            for i in range(0, amnt):
+            for _ in range(0, amnt):
                 problem_toplevel_function_scope = problem_toplevel_function_scope.get_parent()
 
             push_level -= amnt

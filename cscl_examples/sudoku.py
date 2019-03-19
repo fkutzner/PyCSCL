@@ -130,7 +130,7 @@ class SudokuBoard:
         for i in range(0, box_size):
             if i != 0:
                 result += "+"
-            for j in range(0, box_size):
+            for _ in range(0, box_size):
                 result += "-"
         return result
 
@@ -245,7 +245,7 @@ class SudokuProblemEncoder:
 
         num_symbols = self.__num_symbols
         self.__at = []
-        for i in range(0, num_symbols):
+        for _ in range(0, num_symbols):
             row = [[self.__lit_factory.create_literal() for _ in range(0, num_symbols)]
                    for _ in range(0, num_symbols)]
             self.__at.append(row)
