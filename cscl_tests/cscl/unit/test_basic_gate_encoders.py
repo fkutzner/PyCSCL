@@ -336,11 +336,6 @@ class TestEncodeCNFConstraintAsGate(TestCase):
         result = encode_cnf_constraint_as_gate(checker, checker, [[variables[0]], [variables[1]]], variables[2])
         self.assertEqual(result, variables[2])
 
-    def test_encode_cnf_constraint_as_gate_returns_new_output_literal_by_default(self):
-        checker, variables = create_trivial_sat_solver_with_n_vars(10)
-        result = encode_cnf_constraint_as_gate(checker, checker, [[variables[0]], [variables[1]]])
-        return result not in variables and -result not in variables
-
     def test_encode_cnf_constraint_as_gate_encodes_empty_constraint_as_true(self):
         checker, variables = create_trivial_sat_solver_with_n_vars(10)
         logging_checker = LoggingClauseConsumerDecorator(checker)
