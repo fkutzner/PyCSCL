@@ -39,6 +39,8 @@ class TestParseSmtlib2Literal(unittest.TestCase):
         self.assertEqual(result.get_literal(), 0, "Unexpected result " + str(result))
         sort = result.get_sort()
         self.assertTrue(isinstance(sort, sorts.BitvectorSort))
+        # The following statement is OK due to the assertion that sort is an instance of BitvectorSort:
+        # noinspection PyUnresolvedReferences
         self.assertTrue(sort.get_len() == 1)
 
     def test_parses_bv2(self):
@@ -47,6 +49,8 @@ class TestParseSmtlib2Literal(unittest.TestCase):
         self.assertEqual(result.get_literal(), 2, "Unexpected result " + str(result))
         sort = result.get_sort()
         self.assertTrue(isinstance(sort, sorts.BitvectorSort))
+        # The following statement is OK due to the assertion that sort is an instance of BitvectorSort:
+        # noinspection PyUnresolvedReferences
         self.assertEqual(sort.get_len(), 2)
 
     def test_parses_bv21_with_leading_zeroes(self):
@@ -55,6 +59,8 @@ class TestParseSmtlib2Literal(unittest.TestCase):
         self.assertEqual(result.get_literal(), 21, "Unexpected result " + str(result))
         sort = result.get_sort()
         self.assertTrue(isinstance(sort, sorts.BitvectorSort))
+        # The following statement is OK due to the assertion that sort is an instance of BitvectorSort:
+        # noinspection PyUnresolvedReferences
         self.assertEqual(sort.get_len(), 5)
 
 
@@ -148,6 +154,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         result = smt.parse_smtlib2_term("100", sort_ctx, fun_scope)
         self.assertTrue(isinstance(result, ast.LiteralASTNode))
         self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
+        # The following statement is OK due to the assertion that result is an instance of LiteralASTNode:
+        # noinspection PyUnresolvedReferences
         self.assertEqual(result.get_literal(), 100)
 
     def test_bv_literal_is_term(self):
@@ -156,6 +164,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         result = smt.parse_smtlib2_term("#b100", sort_ctx, fun_scope)
         self.assertTrue(isinstance(result, ast.LiteralASTNode))
         self.assertTrue(isinstance(result.get_sort(), sorts.BitvectorSort))
+        # The following statement is OK due to the assertion that result is an instance of LiteralASTNode:
+        # noinspection PyUnresolvedReferences
         self.assertEqual(result.get_literal(), 4)
 
     def test_constant_is_term(self):
@@ -167,6 +177,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         result = smt.parse_smtlib2_term("foonction", sort_ctx, fun_scope)
         self.assertTrue(isinstance(result, ast.FunctionApplicationASTNode))
         self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
+        # The following statement is OK due to the assertion that result is an instance of FunctionApplicationASTNode:
+        # noinspection PyUnresolvedReferences
         self.assertEqual(result.get_declaration().get_name(), "foonction")
         self.assertEqual(len(result.get_child_nodes()), 0)
 
@@ -179,6 +191,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         result = smt.parse_smtlib2_term(["foonction"], sort_ctx, fun_scope)
         self.assertTrue(isinstance(result, ast.FunctionApplicationASTNode))
         self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
+        # The following statement is OK due to the assertion that result is an instance of FunctionApplicationASTNode:
+        # noinspection PyUnresolvedReferences
         self.assertEqual(result.get_declaration().get_name(), "foonction")
         self.assertEqual(len(result.get_child_nodes()), 0)
 
@@ -194,6 +208,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         result = smt.parse_smtlib2_term(["foonction", "#b100", "30"], sort_ctx, fun_scope)
         self.assertTrue(isinstance(result, ast.FunctionApplicationASTNode))
         self.assertTrue(isinstance(result.get_sort(), sorts.IntegerSort))
+        # The following statement is OK due to the assertion that result is an instance of FunctionApplicationASTNode:
+        # noinspection PyUnresolvedReferences
         self.assertEqual(result.get_declaration().get_name(), "foonction")
         self.assertEqual(len(result.get_child_nodes()), 2)
 
@@ -449,6 +465,8 @@ class TestParseSmtlib2Term(unittest.TestCase):
         fun_scope = smt.SyntacticFunctionScope(None)
         result = smt.parse_smtlib2_term(["_", "bv500", "12"], sort_ctx, fun_scope)
         self.assertTrue(isinstance(result, ast.LiteralASTNode))
+        # The following statement is OK due to the assertion that result is an instance of LiteralASTNode:
+        # noinspection PyUnresolvedReferences
         self.assertEqual(result.get_literal(), 500)
         self.assertTrue(result.get_sort() is sort_ctx.get_bv_sort(12))
 
