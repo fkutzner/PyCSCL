@@ -128,7 +128,7 @@ xxx|xxx|2x3"""
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         result = under_test.get_size()
         self.assertEqual(result, 4, "Invalid size " + str(result))
-        
+
     def test_set_valid_digit(self):
         under_test = SudokuBoard.create_from_string(self.board_2x2)
         under_test.set(0, 0, 3)

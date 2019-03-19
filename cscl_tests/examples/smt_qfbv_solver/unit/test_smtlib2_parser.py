@@ -401,7 +401,7 @@ class TestParseSmtlib2Term(unittest.TestCase):
         fun_scope = smt.SyntacticFunctionScope(None)
 
         def foonction_signature_fn(x):
-            if len(x) < 3 or type(x[0]) is not int or type(x[1]) is not int or not isinstance(x[2], sorts.Sort):
+            if len(x) < 3 or not isinstance(x[0], int) or not isinstance(x[1], int) or not isinstance(x[2], sorts.Sort):
                 return None
             return sort_ctx.get_bv_sort(x[0] + x[1] + x[2].get_len())
 
@@ -422,7 +422,7 @@ class TestParseSmtlib2Term(unittest.TestCase):
         fun_scope = smt.SyntacticFunctionScope(None)
 
         def foonction_signature_fn(x):
-            if len(x) < 3 or type(x[0]) is not int or type(x[1]) is not int\
+            if len(x) < 3 or not isinstance(x[0], int) or not isinstance(x[1], int)\
                     or not isinstance(x[2], sorts.BitvectorSort):
                 return None
             return sort_ctx.get_bv_sort(x[0] + x[1] + x[2].get_len())
@@ -484,7 +484,7 @@ class TestParseSmtlib2Problem(unittest.TestCase):
 
     def test_set_logic_cmd_qfbv(self):
         result = smt.parse_smtlib2_problem([["set-logic", "QF_BV"]])
-        self.assertEqual(type(result), list)
+        self.assertTrue(isinstance(result, list))
         self.assertEqual(len(result), 1)
         expected_tree = "SetLogicCommandASTNode Logic: QF_BV"
         actual_tree = result[0].tree_to_string()
@@ -498,7 +498,7 @@ class TestParseSmtlib2Problem(unittest.TestCase):
 
     def test_declare_fun_cmd_without_args_and_int_range(self):
         result = smt.parse_smtlib2_problem([["declare-fun", "foonction", [], "Int"]])
-        self.assertEqual(type(result), list)
+        self.assertTrue(isinstance(result, list))
         self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: [] RangeSort: Int"
         actual_tree = result[0].tree_to_string()
@@ -506,7 +506,7 @@ class TestParseSmtlib2Problem(unittest.TestCase):
 
     def test_declare_fun_cmd_without_args_and_bv_range(self):
         result = smt.parse_smtlib2_problem([["declare-fun", "foonction", [], ["_", "BitVec", "32"]]])
-        self.assertEqual(type(result), list)
+        self.assertTrue(isinstance(result, list))
         self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: [] RangeSort: (_ BitVec 32)"
         actual_tree = result[0].tree_to_string()
@@ -515,7 +515,7 @@ class TestParseSmtlib2Problem(unittest.TestCase):
     def test_declare_fun_cmd_with_args_and_bv_range(self):
         result = smt.parse_smtlib2_problem([["declare-fun", "foonction", ["Int", ["_", "BitVec", "32"]],
                                              ["_", "BitVec", "32"]]])
-        self.assertEqual(type(result), list)
+        self.assertTrue(isinstance(result, list))
         self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: foonction DomainSorts: ['Int', '(_ BitVec 32)']" + \
                         " RangeSort: (_ BitVec 32)"
@@ -524,7 +524,7 @@ class TestParseSmtlib2Problem(unittest.TestCase):
 
     def test_declare_const_cmd_with_int_sort(self):
         result = smt.parse_smtlib2_problem([["declare-const", "fooconst", "Int"]])
-        self.assertEqual(type(result), list)
+        self.assertTrue(isinstance(result, list))
         self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: fooconst DomainSorts: [] RangeSort: Int"
         actual_tree = result[0].tree_to_string()
@@ -532,7 +532,7 @@ class TestParseSmtlib2Problem(unittest.TestCase):
 
     def test_declare_const_cmd_with_bv_sort(self):
         result = smt.parse_smtlib2_problem([["declare-const", "fooconst", ["_", "BitVec", "32"]]])
-        self.assertEqual(type(result), list)
+        self.assertTrue(isinstance(result, list))
         self.assertEqual(len(result), 1)
         expected_tree = "DeclareFunCommandASTNode FunctionName: fooconst DomainSorts: [] RangeSort: (_ BitVec 32)"
         actual_tree = result[0].tree_to_string()

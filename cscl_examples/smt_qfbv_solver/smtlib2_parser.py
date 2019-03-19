@@ -117,7 +117,7 @@ def parse_smtlib2_func_application_term(parsed_sexp, sort_ctx: sorts.SortContext
     if len(parsed_sexp) == 0:
         raise ValueError("Empty term")
 
-    if type(parsed_sexp[0]) is list:
+    if isinstance(parsed_sexp[0], list):
         param_fn_sexp = parsed_sexp[0]
         if len(param_fn_sexp) < 2\
                 or param_fn_sexp[0] != "_"\
@@ -149,7 +149,7 @@ def parse_smtlib2_let_term(parsed_sexp, sort_ctx: sorts.SortContext,
     :return: A LetTermASTNode representing parsed_sexp.
     :raises ValueError if parsed_sexp is a malformed term.
     """
-    if len(parsed_sexp) != 3 or type(parsed_sexp[1]) is not list:
+    if len(parsed_sexp) != 3 or not isinstance(parsed_sexp[1], list):
         raise ValueError("Malformed let term")
 
     fun_scope_extension = SyntacticFunctionScope(fun_scope)
@@ -205,7 +205,7 @@ def parse_smtlib2_term(parsed_sexp, sort_ctx: sorts.SortContext, fun_scope: Synt
     :return: A TermASTNode representing parsed_sexp.
     :raises ValueError if parsed_sexp is a malformed term.
     """
-    if type(parsed_sexp) is not list:
+    if not isinstance(parsed_sexp, list):
         return parse_smtlib2_flat_term(parsed_sexp, sort_ctx, fun_scope)
     if parsed_sexp[0] == "let":
         return parse_smtlib2_let_term(parsed_sexp, sort_ctx, fun_scope)
@@ -242,7 +242,7 @@ def parse_cmd_declare_fun(parsed_sexp, sort_ctx: sorts.SortContext):
              function's signature.
     :raises ValueError if parsed_sexp is a malformed term.
     """
-    if len(parsed_sexp) != 4 or type(parsed_sexp[1]) != str or type(parsed_sexp[2]) != list:
+    if len(parsed_sexp) != 4 or not isinstance(parsed_sexp[1], str) or not isinstance(parsed_sexp[2], list):
         raise ValueError("Invalid declare-fun command")
     fun_name, domain_sorts_sexp, range_sort_sexp = parsed_sexp[1:]
     domain_sorts = [parse_smtlib2_sort(x, sort_ctx=sort_ctx) for x in domain_sorts_sexp]
@@ -268,7 +268,7 @@ def parse_cmd_declare_const(parsed_sexp, sort_ctx: sorts.SortContext):
              function's signature.
     :raises ValueError if parsed_sexp is a malformed term.
     """
-    if len(parsed_sexp) != 3 or type(parsed_sexp[1]) != str:
+    if len(parsed_sexp) != 3 or not isinstance(parsed_sexp[1], str):
         raise ValueError("Invalid declare-const command")
     fun_name, range_sort_sexp = parsed_sexp[1:]
     range_sort = parse_smtlib2_sort(range_sort_sexp, sort_ctx=sort_ctx)
@@ -294,7 +294,7 @@ def parse_cmd_define_fun(parsed_sexp, sort_ctx: sorts.SortContext, scope: Syntac
              function's signature.
     :raises ValueError if parsed_sexp is a malformed command.
     """
-    if len(parsed_sexp) != 5 or type(parsed_sexp[1]) != str or type(parsed_sexp[2]) != list:
+    if len(parsed_sexp) != 5 or not isinstance(parsed_sexp[1], str) or not isinstance(parsed_sexp[2], list):
         raise ValueError("Invalid define-fun command")
     fun_name, parameters_sexp, range_sort_sexp, defining_term_sexp = parsed_sexp[1:]
 
@@ -302,7 +302,7 @@ def parse_cmd_define_fun(parsed_sexp, sort_ctx: sorts.SortContext, scope: Syntac
     domain_sorts = []
     formal_parameters = []
     for x in parameters_sexp:
-        if type(x) != list or len(x) != 2:
+        if not isinstance(x, list) or len(x) != 2:
             raise ValueError("Invalid define-fun command: malformed parameters")
         parameter_sym_str, parameter_ty_sexp = x
         parameter_sym = parse_smtlib2_symbol(parameter_sym_str)
@@ -340,7 +340,7 @@ def parse_cmd_define_const(parsed_sexp, sort_ctx: sorts.SortContext, scope: Synt
              function's signature.
     :raises ValueError if parsed_sexp is a malformed command.
     """
-    if len(parsed_sexp) != 4 or type(parsed_sexp[1]) != str:
+    if len(parsed_sexp) != 4 or not isinstance(parsed_sexp[1], str):
         raise ValueError("Invalid declare-const command")
     define_fun_sexp = parsed_sexp[:2] + [[]] + parsed_sexp[2:]
     return parse_cmd_define_fun(define_fun_sexp, sort_ctx, scope)
@@ -422,7 +422,7 @@ def parse_smtlib2_problem(parsed_sexp):
             return ast_node
 
         elif command == "set-logic":
-            if len(sexp) != 2 or not type(sexp[1]) == str:
+            if len(sexp) != 2 or not isinstance(sexp[1], str):
                 raise ValueError("Invalid set-logic command")
             logic = sexp[1]
             add_logic_as_parent(problem_toplevel_function_scope, sort_context, logic)

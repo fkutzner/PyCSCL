@@ -109,7 +109,8 @@ class FixedSizeBVSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFacto
     @staticmethod
     def __add_extract_fn(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __extract_sig_fn(x):
-            if len(x) == 3 and type(x[0]) is int and type(x[1]) is int and isinstance(x[2], sorts.BitvectorSort):
+            if len(x) == 3 and isinstance(x[0], int) and isinstance(x[1], int)\
+                    and isinstance(x[2], sorts.BitvectorSort):
                 i, j = x[0:2]
                 if (x[2].get_len() > i) and (i >= j) and (j >= 0):
                     return sort_ctx.get_bv_sort(i - j + 1)
@@ -193,7 +194,7 @@ class QFBVExtSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
     @staticmethod
     def __add_repeat_fn(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __repeat_sig_fn(x):
-            if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
+            if len(x) == 2 and isinstance(x[0], int) and isinstance(x[1], sorts.BitvectorSort):
                 return sort_ctx.get_bv_sort(x[0] * x[1].get_len())
         fname = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("repeat")
         target.add_declaration(ast.FunctionDeclaration(fname,
@@ -202,7 +203,7 @@ class QFBVExtSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
     @staticmethod
     def __add_extend_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __extend_sig_fn(x):
-            if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
+            if len(x) == 2 and isinstance(x[0], int) and isinstance(x[1], sorts.BitvectorSort):
                 return sort_ctx.get_bv_sort(x[0] + x[1].get_len())
         extend_sig = ast.FunctionSignature(__extend_sig_fn, 1, False, 1)
         zero_extend_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("zero_extend")
@@ -213,7 +214,7 @@ class QFBVExtSyntacticFunctionScopeFactory(TheorySyntacticFunctionScopeFactory):
     @staticmethod
     def __add_rotate_fns(target: synscope.SyntacticFunctionScope, sort_ctx: sorts.SortContext):
         def __rotate_sig_fn(x):
-            if len(x) == 2 and type(x[0]) is int and isinstance(x[1], sorts.BitvectorSort):
+            if len(x) == 2 and isinstance(x[0], int) and isinstance(x[1], sorts.BitvectorSort):
                 return sort_ctx.get_bv_sort(x[1].get_len())
         rotate_sig = ast.FunctionSignature(__rotate_sig_fn, 1, False, 1)
         rl_name = synscope.SyntacticFunctionScope.mangle_parametrized_function_name("rotate_left")

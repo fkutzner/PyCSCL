@@ -275,7 +275,7 @@ class TestFixedSizeBVSyntacticFunctionScopeFactory(unittest.TestCase):
 
     def test_bvudiv_fn_is_only_applicable_to_bv_sorted_terms(self):
         self.__test_binary_fn_is_only_applicable_to_bv_sorted_terms("bvudiv")
-        
+
     def test_has_bvurem_fn(self):
         self.__test_has_binary_fn("bvurem")
 
