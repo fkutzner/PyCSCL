@@ -1,6 +1,7 @@
 import abc
 import unittest
 import itertools
+import math
 import cscl.bitvector_gate_encoders as bvg
 import cscl.interfaces as cscl_if
 from cscl_tests.testutils.trivial_sat_solver import TrivialSATSolver
@@ -892,3 +893,65 @@ class TestEncodeStaggeredOrGate(unittest.TestCase):
 
             solver.consume_clause([-o for o in expected_output])
             self.assertFalse(solver.solve(test_input), "Unexpected: encoding is not a gate encoding")
+
+
+class TestEncodePopcountGate(unittest.TestCase):
+
+    def test_encodes_popcount_for_unary_input(self):
+        solver = TrivialSATSolver()
+        input_lit = solver.create_literal()
+        output_lit = solver.create_literal()
+        bvg.encode_bv_popcount_gate(clause_consumer=solver, lit_factory=solver, input_lits=[input_lit],
+                                    output_lits=[output_lit])
+
+        self.assertTrue(solver.solve([]), "Without further constraints, the gate encoding must be satisfiable")
+        self.assertFalse(solver.solve([input_lit, -output_lit]), "Unexpected: input not equivalent to output")
+        self.assertFalse(solver.solve([-input_lit, output_lit]), "Unexpected: input not equivalent to output")
+
+    def check_encodes_popcount_for_nary_input(self, width):
+        output_width = int(math.ceil(math.log2(width+1)))
+        for i in range(0, 2**width):
+            solver = TrivialSATSolver()
+            input_lits = [solver.create_literal() for _ in range(0, width)]
+            output_lits = [solver.create_literal() for _ in range(0, output_width)]
+            bvg.encode_bv_popcount_gate(clause_consumer=solver, lit_factory=solver, input_lits=input_lits,
+                                        output_lits=output_lits)
+
+            reference_popcount = bin(i).count('1')
+
+            input_setting = apply_truth_table_setting(input_lits, int_to_bitvec(i, width))
+            expected_output_setting = apply_truth_table_setting(output_lits,
+                                                                int_to_bitvec(reference_popcount,
+                                                                              output_width))
+
+            self.assertTrue(solver.solve(input_setting + expected_output_setting),
+                            "The gate should be satisfiable under the expected output setting, but is not")
+            solver.consume_clause([-x for x in expected_output_setting])
+            self.assertFalse(solver.solve(input_setting),
+                             "The gate should force the expected output setting, but does not")
+
+    def test_encodes_popcount_for_binary_input(self):
+        self.check_encodes_popcount_for_nary_input(2)
+
+    def test_encodes_popcount_for_ternary_input(self):
+        self.check_encodes_popcount_for_nary_input(3)
+
+    def test_encodes_popcount_for_4ary_input(self):
+        self.check_encodes_popcount_for_nary_input(4)
+
+    def test_encodes_popcount_for_5ary_input(self):
+        self.check_encodes_popcount_for_nary_input(5)
+
+    def test_raises_exception_for_empty_input(self):
+        with self.assertRaises(ValueError):
+            solver = TrivialSATSolver()
+            input_lits = []
+            bvg.encode_bv_popcount_gate(clause_consumer=solver, lit_factory=solver, input_lits=input_lits)
+
+    def test_raises_exception_for_mismatching_output_size(self):
+        with self.assertRaises(ValueError):
+            solver = TrivialSATSolver()
+            input_lits = [solver.create_literal() for _ in range(0, 8)]
+            output_lits = [solver.create_literal() for _ in range(0, 4)]
+            bvg.encode_bv_popcount_gate(clause_consumer=solver, lit_factory=solver,
+                                        input_lits=input_lits, output_lits=output_lits)

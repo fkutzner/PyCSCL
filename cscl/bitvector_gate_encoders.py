@@ -4,6 +4,7 @@ This module provides constraint encoders for gate-like constraints on bitvectors
 bitwise boolean functions and modulo arithmetic.
 """
 
+import math
 from cscl.interfaces import CNFLiteralFactory, ClauseConsumer
 import cscl.basic_gate_encoders as gates
 
@@ -629,3 +630,49 @@ def encode_bv_long_urem_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLi
                              remainder_output_lits=output_lits)
 
     return output_lits
+
+
+def encode_bv_popcount_gate(clause_consumer: ClauseConsumer, lit_factory: CNFLiteralFactory,
+                            input_lits, output_lits=None):
+    """
+    Encodes a population-counter gate.
+
+    The encoded gate constrains the output literals to represent an unsigned bitvector
+    whose assignment is equal to the amount of "1"-bit occurrences in the input literal
+    assignment.
+
+    :param clause_consumer: The clause consumer to which the clauses of the gate encoding shall be added.
+    :param lit_factory: The CNF literal factory to be used for creating literals with new variables.
+    :param input_lits: The (nonempty) list of input literals.
+    :param output_lits: If output_lits is None, the encoder creates N=int(math.ceil(math.log2(len(input_lits)+1)))
+                        new output literals. Otherwise, output_lits must be a list of N literals, which shall
+                        be used as the gates' output literals.
+    :return: The list of output literals as described above, representing the result bitvector.
+    """
+
+    if len(input_lits) == 0:
+        raise ValueError("Illegal empty input")
+
+    len_output_lits = int(math.ceil(math.log2(len(input_lits)+1)))
+    if output_lits is None:
+        output_lits = [lit_factory.create_literal() for _ in range(0, len_output_lits)]
+    elif len(output_lits) != len_output_lits:
+        raise ValueError("Mismatching output bitvector size")
+
+    if len(input_lits) == 1:
+        return [gates.encode_and_gate(clause_consumer, lit_factory, [input_lits[0]], output_lits[0])]
+
+    if len(input_lits) == 2:
+        # encode a half adder:
+        low_result = gates.encode_binary_xor_gate(clause_consumer, lit_factory, input_lits, output_lits[0])
+        high_result = gates.encode_and_gate(clause_consumer, lit_factory, input_lits, output_lits[1])
+        return [low_result, high_result]
+
+    half_size = int(len(input_lits)/2)
+    low_result = encode_bv_popcount_gate(clause_consumer, lit_factory, input_lits[:half_size])
+    high_result = encode_bv_popcount_gate(clause_consumer, lit_factory, input_lits[half_size:2*half_size])
+
+    carry_in = None if len(input_lits) == 2*half_size else input_lits[-1]
+    return encode_bv_ripple_carry_adder_gate(clause_consumer, lit_factory, low_result, high_result,
+                                             carry_in_lit=carry_in, output_lits=output_lits[:-1],
+                                             carry_out_lit=output_lits[-1])
