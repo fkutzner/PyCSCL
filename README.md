@@ -77,6 +77,7 @@ Package: `cscl.basic_gate_encoders`
 - Parallel bitvector multiplier gate
 - Unsigned bitvector divider and modulo gate
 - Signed (2's complement) and unsigned bitvector comparison gates
+- Population-counter gate
 
 Package: `cscl.bitvector_gate_encoders`
 

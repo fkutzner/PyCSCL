@@ -7,6 +7,7 @@ This changelog's format is based on [keep a changelog 1.0.0](https://keepachange
 - generic at-least-k cardinality constraint encoder
 - generic exactly-k cardinality constraint encoder
 - Commander at-most-k cardinality constraint encoder
+- population-counter gate
 
 ## [0.1.0] - 2019-02-24
 ### Added
