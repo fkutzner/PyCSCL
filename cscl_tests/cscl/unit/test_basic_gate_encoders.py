@@ -238,7 +238,7 @@ class TestEncodeBinaryXorGate(TestCase, AbstractTruthTableBasedGateTest):
         return encode_binary_xor_gate
 
     def get_gate_arity(self):
-        return 3
+        return 2
 
     def get_spec_truth_table(self):
         return (((0, 0), 0),
