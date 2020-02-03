@@ -26,7 +26,7 @@ class ClauseConsumer(abc.ABC):
         """
         Consumes a clause.
 
-        :param clause: The clause to be consumed, a list of objects which have been created using create_literal().
+        :param clause: The clause to be consumed, an iterable of objects which have been created using create_literal().
         :return: None
         """
         pass
@@ -40,7 +40,7 @@ class SatSolver(CNFLiteralFactory, ClauseConsumer):
         """
         Determines whether the problem is satisfiable.
 
-        :param assumptions: A list of literals whose assignment shall be forced to true during the solving process.
+        :param assumptions: An iterable of literals whose assignment shall be forced to true during the solving process.
                             For each literal l in assumptions, either l or -l must have been produced via
                             create_literal().
         :return: True if the problem is satisfiable; False if the problem is not satisfiable; None if the solver
