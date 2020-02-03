@@ -8,7 +8,7 @@ This changelog's format is based on [keep a changelog 1.0.0](https://keepachange
 
 ### Changed
 - relaxed the ClauseConsumer interface to accept iterables of literals
-- relaxed the basic gate encoder functions to accept iterables of literals
+- relaxed the gate encoder functions to accept and return iterables of literals
 
 
 ## [0.2.0] - 2019-03-10

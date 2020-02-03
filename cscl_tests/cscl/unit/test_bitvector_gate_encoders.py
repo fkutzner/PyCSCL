@@ -437,15 +437,17 @@ class AbstractTruthTableBasedBitvectorGateTest(abc.ABC):
                                         lhs_input_lits=lhs_input_lits,
                                         rhs_input_lits=rhs_input_lits,
                                         output_lit=output_lits)
+            # noinspection PyUnresolvedReferences
+            self.assertEqual(result, output_lits)
         else:
             result = encoder_under_test(clause_consumer=clause_consumer,
                                         lit_factory=lit_factory,
                                         lhs_input_lits=lhs_input_lits,
                                         rhs_input_lits=rhs_input_lits,
                                         output_lits=output_lits)
+            # noinspection PyUnresolvedReferences
+            self.assertEqual(list(result), output_lits)
 
-        # noinspection PyUnresolvedReferences
-        self.assertEqual(result, output_lits)
 
     def test_creates_output_literals_if_none_provided(self):
         lit_factory = TestLiteralFactory()
@@ -852,11 +854,11 @@ class TestEncodeBvLongURemGate(unittest.TestCase, AbstractTruthTableBasedPlainBi
 
 class TestEncodeStaggeredOrGate(unittest.TestCase):
 
-    def test_returns_empty_list_when_no_inputs_provided(self):
+    def test_returns_empty_seq_when_no_inputs_provided(self):
         clause_consumer = CollectingClauseConsumer()
         lit_factory = TestLiteralFactory()
         result = bvg.encode_staggered_or_gate(clause_consumer=clause_consumer, lit_factory=lit_factory, input_lits=[])
-        self.assertEqual(result, [], "Unexpected result " + str(result))
+        self.assertEqual(list(result), [], "Unexpected result " + str(result))
 
     def test_raises_exception_when_input_and_output_sizes_mismatch(self):
         clause_consumer = CollectingClauseConsumer()
