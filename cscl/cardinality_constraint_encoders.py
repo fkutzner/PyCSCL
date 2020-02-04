@@ -88,9 +88,7 @@ def encode_at_most_k_constraint_ltseq(lit_factory: CNFLiteralFactory, k: int, co
     n = len(constrained_lits)
     registers = []
     for i in range(0, n):
-        register = []
-        for j in range(0, k):
-            register.append(lit_factory.create_literal())
+        register = tuple(lit_factory.create_literal() for _ in range(0, k))
         registers.append(register)
     # registers[i][j] represents the j'th bit of register i
     # register[i] represents (as a unary number) the number of literals in constrained_lits[0],
