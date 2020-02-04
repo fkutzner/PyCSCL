@@ -1,4 +1,4 @@
-# PyCSCL 0.2.0
+# PyCSCL 0.3.0 (development version)
 The <b>C</b>ute <b>S</b>AT <b>C</b>onstraint encoder <b>L</b>ibrary for Python 3
 
 PyCSCL is a collection of propositional logic constraint encoders. You can use it
