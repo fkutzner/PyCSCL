@@ -5,6 +5,7 @@ This changelog's format is based on [keep a changelog 1.0.0](https://keepachange
 ## [Unreleased]
 ### Added
 - population-counter gate
+- ladder constraint encoder
 - performance tests for the bitvector multiplication gate encoder and the ltseq cardinality
   constraint encoder
 
