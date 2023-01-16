@@ -34,10 +34,7 @@ def encode_at_most_k_constraint_binomial(lit_factory: CNFLiteralFactory, k: int,
     :return: The constraint in CNF clausal form, a list of lists of literals.
     """
 
-    result = []
-    for subset in subsets_of_size_k(constrained_lits, k+1):
-        result.append(list(map(lambda x: -x, subset)))
-    return result
+    return subsets_of_size_k([ -x for x in constrained_lits], k+1)
 
 
 def encode_at_most_k_constraint_ltseq(lit_factory: CNFLiteralFactory, k: int, constrained_lits: list):
@@ -189,7 +186,7 @@ def encode_at_most_k_constraint_commander(lit_factory: CNFLiteralFactory, k: int
     for idx, group in enumerate(groups):
         group_with_commanders = group + [-c for c in commanders[idx]]
         group_constraints += encode_exactly_k_constraint(lit_factory, k, group_with_commanders,
-                                                         encode_at_most_k_constraint_binomial)
+                                                         list(encode_at_most_k_constraint_binomial))
 
     # Break symmetries by ordering the commander literals:
     order_commanders = [[-group_commanders[i], group_commanders[i+1]]
